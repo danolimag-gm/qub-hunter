@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#2a3826" />
+<title>Qub Hunter — Carte de chasse du Québec</title>
+
+<link rel="manifest" href="./manifest.json" />
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pmtiles@3.2.0/dist/pmtiles.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inria+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --forest-deep: #1d2818; --forest: #2a3826; --forest-mid: #3d5234;
+  --moss: #6b7d4a; --bark: #4a3829; --bark-light: #7a5d44;
+  --paper: #f0e8d6; --paper-warm: #e8dcc0; --paper-aged: #d4c5a0;
+  --ink: #1a1410; --rust: #a04a28; --blood: #6b1a14; --gold: #b88a3e;
+  --line: #8a7a5a; --zone-blue: #2a5c8a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: 'Inria Sans', sans-serif;
+  background: var(--paper); color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+#map { position: absolute; inset: 0; background: var(--paper-warm); }
+
+/* ── HEADER ── */
+.header {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  padding: env(safe-area-inset-top) 16px 12px;
+  background: linear-gradient(to bottom, rgba(29,40,24,0.96) 0%, rgba(29,40,24,0.88) 70%, transparent 100%);
+  pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+}
+.header > * { pointer-events: auto; }
+
+.brand { padding-top: 8px; display: flex; align-items: baseline; gap: 10px; }
+.brand-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700; font-style: italic; font-size: 26px;
+  color: var(--paper); letter-spacing: -0.01em; line-height: 1;
+}
+.brand-mark::first-letter { color: var(--gold); }
+.brand-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; color: var(--paper-aged);
+  text-transform: uppercase; letter-spacing: 0.18em; padding-bottom: 2px;
+}
+
+/* ── INDICATEUR RÉSEAU ── */
+.net-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--paper-aged); padding-bottom: 2px;
+}
+.net-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--moss); flex-shrink: 0; transition: background 0.3s; }
+.net-badge.offline .net-dot { background: var(--gold); animation: pulse-dot 1.6s ease-in-out infinite; }
+.net-badge.offline .net-label { color: var(--gold); }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.header-actions { display: flex; gap: 8px; }
+
+.icon-btn {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid rgba(212,197,160,0.3);
+  background: rgba(29,40,24,0.85); color: var(--paper);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: grid; place-items: center; cursor: pointer; transition: all 0.15s ease;
+}
+.icon-btn:active { transform: scale(0.92); background: var(--gold); color: var(--forest-deep); }
+.icon-btn svg { width: 20px; height: 20px; }
+
+/* ── SEARCH OVERLAY ── */
+.search-overlay {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+  padding: calc(env(safe-area-inset-top) + 10px) 14px 14px;
+  background: rgba(29,40,24,0.97); backdrop-filter: blur(10px);
+  transform: translateY(-110%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.18, 1);
+}
+.search-overlay.open { transform: translateY(0); }
+.search-row { display: flex; gap: 8px; align-items: center; }
+.search-input {
+  flex: 1; height: 44px; padding: 0 14px;
+  background: rgba(240,232,214,0.12);
+  border: 1px solid rgba(212,197,160,0.35); border-radius: 6px;
+  color: var(--paper); font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; letter-spacing: 0.04em; outline: none;
+}
+.search-input::placeholder { color: rgba(212,197,160,0.5); }
+.search-input:focus { border-color: var(--gold); background: rgba(240,232,214,0.18); }
+.search-close {
+  width: 44px; height: 44px; background: transparent;
+  border: 1px solid rgba(212,197,160,0.25); border-radius: 6px;
+  color: var(--paper-aged); cursor: pointer; display: grid; place-items: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.search-close:active { background: rgba(255,255,255,0.08); }
+.search-hint { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: rgba(212,197,160,0.5); margin-top: 8px; letter-spacing: 0.08em; }
+.search-results { margin-top: 10px; max-height: 280px; overflow-y: auto; }
+.search-result-item { padding: 10px 12px; border-bottom: 1px solid rgba(212,197,160,0.12); cursor: pointer; transition: background 0.1s; }
+.search-result-item:hover, .search-result-item:active { background: rgba(240,232,214,0.08); }
+.search-result-item .r-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.14em; }
+.search-result-item .r-name { font-size: 14px; color: var(--paper); margin-top: 2px; }
+.search-result-item .r-coord { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: rgba(212,197,160,0.5); margin-top: 2px; }
+.search-empty { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: rgba(212,197,160,0.4); padding: 16px 12px; text-align: center; }
+
+/* ── PANEL ── */
+.panel {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: var(--paper); border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(29,40,24,0.25), 0 -2px 0 rgba(184,138,62,0.15);
+  padding: 6px 0 calc(env(safe-area-inset-bottom) + 12px);
+  transform: translateY(calc(100% - 92px));
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0.18, 1);
+}
+.panel.open { transform: translateY(0); }
+.panel-handle { width: 100%; padding: 8px 16px 4px; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
+.panel-handle::before { content: ''; display: block; width: 36px; height: 4px; margin: 0 auto; background: var(--paper-aged); border-radius: 2px; }
+.panel-summary { padding: 8px 20px 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px dashed var(--paper-aged); }
+.panel-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--forest); }
+.panel-meta { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.1em; }
+.panel-content { padding: 14px 20px 0; max-height: 60vh; overflow-y: auto; }
+.layer-section { margin-bottom: 20px; }
+.section-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--bark); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--paper-aged); }
+.layer-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(212,197,160,0.4); }
+.layer-row:last-child { border-bottom: none; }
+.layer-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0; }
+.layer-info { flex: 1; min-width: 0; }
+.layer-name { font-size: 14px; color: var(--ink); line-height: 1.2; }
+.layer-desc { font-size: 11px; color: var(--bark-light); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+.toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--paper-aged); border-radius: 26px; cursor: pointer; transition: background 0.2s; }
+.toggle-slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: var(--paper); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.2s; }
+.toggle input:checked + .toggle-slider { background: var(--forest-mid); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+/* ── SECTION HORS-LIGNE ── */
+.offline-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(212,197,160,0.3); }
+.offline-row:last-of-type { border-bottom: none; }
+.offline-status { width: 18px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 13px; flex-shrink: 0; color: var(--paper-aged); }
+.offline-status.cached { color: var(--moss); }
+.offline-status.missing { color: var(--bark-light); }
+.offline-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; margin-top: 4px; border-top: 1px dashed var(--paper-aged); }
+.offline-size { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--bark-light); }
+
+/* ── POPUPS ── */
+.maplibregl-popup-content {
+  background: var(--paper) !important; border: 1px solid var(--bark-light) !important;
+  border-radius: 4px !important; padding: 14px 16px !important;
+  font-family: 'Inria Sans', sans-serif !important;
+  box-shadow: 0 6px 24px rgba(29,40,24,0.3) !important; max-width: 280px !important;
+}
+.popup-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--rust); margin-bottom: 4px; }
+.popup-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--forest-deep); line-height: 1.15; margin-bottom: 8px; }
+.popup-row { font-size: 12px; color: var(--ink); margin: 3px 0; display: flex; justify-content: space-between; gap: 12px; }
+.popup-row .label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ── POPUP RÈGLEMENTS ── */
+.popup-reglements { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--paper-aged); }
+.regl-header { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--bark-light); margin-bottom: 6px; }
+.regl-row { display: flex; align-items: baseline; gap: 6px; margin: 5px 0; }
+.regl-emoji { width: 18px; text-align: center; flex-shrink: 0; font-size: 13px; }
+.regl-nom { flex: 1; font-size: 12px; color: var(--ink); }
+.regl-saison { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--bark-light); white-space: nowrap; }
+.regl-disclaimer { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--bark-light); margin-top: 8px; opacity: 0.75; }
+.regl-badge { display: inline-block; padding: 2px 7px; border-radius: 2px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+.badge-vert   { background: rgba(107,125,74,0.15); color: var(--moss); }
+.badge-orange { background: rgba(184,138,62,0.15); color: var(--gold); }
+.badge-rouge  { background: rgba(107,26,20,0.15);  color: var(--blood); }
+.badge-gris   { background: rgba(122,93,68,0.12);  color: var(--bark-light); }
+.regl-detail { font-size: 11px; color: var(--bark); line-height: 1.5; margin-top: 2px; }
+.popup-mrnf-link { display: block; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--zone-blue); text-decoration: none; letter-spacing: 0.08em; }
+.popup-mrnf-link:hover { text-decoration: underline; }
+
+/* ── FABs ── */
+.geo-fab { position: absolute; right: 14px; bottom: 110px; z-index: 9; width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--bark-light); background: var(--paper); display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 14px rgba(29,40,24,0.25); transition: all 0.15s; }
+.geo-fab:active { transform: scale(0.92); background: var(--gold); }
+.geo-fab svg { width: 22px; height: 22px; color: var(--forest-deep); }
+
+/* ── COORDINATES ── */
+.compass-readout { position: absolute; right: 14px; top: calc(env(safe-area-inset-top) + 64px); z-index: 8; background: rgba(29,40,24,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: var(--paper); padding: 8px 12px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.08em; border: 1px solid rgba(212,197,160,0.2); pointer-events: none; line-height: 1.5; }
+.compass-readout .label { color: var(--paper-aged); margin-right: 6px; }
+
+/* ── LEGEND ── */
+.legend { position: absolute; left: 14px; bottom: 110px; z-index: 8; background: rgba(240,232,214,0.96); backdrop-filter: blur(6px); border: 1px solid var(--paper-aged); border-radius: 4px; padding: 10px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink); box-shadow: 0 4px 14px rgba(29,40,24,0.15); max-width: 200px; display: none; }
+.legend.visible { display: block; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+.legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── LOADING / ERROR ── */
+.loading-badge { position: absolute; top: calc(env(safe-area-inset-top) + 64px); left: 14px; z-index: 8; background: rgba(29,40,24,0.9); color: var(--gold); padding: 6px 10px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.08em; pointer-events: none; display: flex; align-items: center; gap: 8px; transition: opacity 0.4s; }
+.loading-badge.hidden { opacity: 0; pointer-events: none; }
+.spinner { width: 12px; height: 12px; border: 2px solid rgba(184,138,62,0.3); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-box { position: absolute; top: calc(env(safe-area-inset-top) + 70px); left: 14px; right: 14px; z-index: 50; background: var(--blood); color: var(--paper); padding: 12px 14px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.4; box-shadow: 0 4px 14px rgba(0,0,0,0.3); display: none; }
+.error-box.visible { display: block; }
+.error-box .err-title { font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; margin-bottom: 4px; opacity: 0.85; }
+.error-box .err-close { float: right; background: transparent; border: 1px solid rgba(240,232,214,0.3); color: var(--paper); padding: 2px 6px; font-size: 10px; border-radius: 2px; cursor: pointer; }
+
+/* ── SOURCE SWITCHER ── */
+.source-btn { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 6px 10px; border: 1px solid var(--bark-light); background: var(--paper); color: var(--bark); border-radius: 3px; text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
+
+/* ── DESKTOP ── */
+@media (min-width: 900px) {
+  .panel { width: 380px; right: auto; border-radius: 0 8px 8px 0; border-right: 1px solid var(--line); border-top: 1px solid var(--line); transform: translateX(0) !important; bottom: 0; top: 0; padding-top: calc(env(safe-area-inset-top) + 80px); }
+  .panel-handle { display: none; }
+  .panel-content { max-height: none; flex: 1; }
+  .header { left: 380px; }
+  .geo-fab { bottom: 30px; }
+  .legend { bottom: 30px; left: 394px; }
+  .loading-badge { left: 394px; }
+  .search-overlay { left: 380px; }
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-row">
+    <input class="search-input" id="searchInput" type="text" placeholder="N° de lot, territoire, coordonnées…" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="search-close" id="searchClose">×</button>
+  </div>
+  <div class="search-hint">Ex : 3 042 048 · ZEC Bessonne · 47.6,-73.4</div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="brand">
+    <div class="brand-mark">Qub Hunter</div>
+    <div class="brand-sub">Phase 04 — Règlements</div>
+    <div class="net-badge" id="netBadge">
+      <div class="net-dot"></div>
+      <span class="net-label" id="netLabel">En ligne</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="searchToggle" aria-label="Rechercher">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg>
+    </button>
+  </div>
+</header>
+
+<div class="error-box" id="errorBox">
+  <button class="err-close" onclick="document.getElementById('errorBox').classList.remove('visible')">×</button>
+  <div class="err-title">Erreur</div>
+  <div id="errorMsg"></div>
+</div>
+
+<div class="loading-badge hidden" id="loadingBadge">
+  <div class="spinner"></div>
+  <span id="loadingMsg">Chargement…</span>
+</div>
+
+<div class="compass-readout" id="compass">
+  <div><span class="label">LAT</span><span id="lat">—</span></div>
+  <div><span class="label">LON</span><span id="lon">—</span></div>
+  <div><span class="label">ZOOM</span><span id="zm">—</span></div>
+</div>
+
+<div class="legend" id="legend">
+  <div class="legend-row"><div class="legend-swatch" style="background:#7a8a3e;opacity:.6"></div>ZEC</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#a04a28;opacity:.6"></div>Pourvoirie (DE)</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#3d5234;opacity:.6"></div>Réserve faunique</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#b88a3e;opacity:.6"></div>Parc national</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#2a5c8a;opacity:.35;border:1px solid #2a5c8a"></div>Zone de chasse</div>
+  <div class="legend-row" id="legend-cadastre" style="display:none"><div class="legend-swatch" style="background:transparent;border:1px solid #8a7a5a"></div>Lots cadastraux</div>
+</div>
+
+<button class="geo-fab" id="geoFab" aria-label="Ma position">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+</button>
+
+<!-- PANEL -->
+<aside class="panel" id="panel">
+  <div class="panel-handle" id="panelHandle"></div>
+  <div class="panel-summary">
+    <div>
+      <div class="panel-title">Couches du territoire</div>
+      <div class="panel-meta" id="panelMeta">Glissez pour ouvrir</div>
+    </div>
+    <button class="icon-btn" id="panelToggle" style="background:transparent;color:var(--forest);border-color:var(--paper-aged)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+    </button>
+  </div>
+  <div class="panel-content">
+
+    <div class="layer-section">
+      <div class="section-label">Fond de carte</div>
+      <div class="layer-row">
+        <div class="layer-info"><div class="layer-name">Source actuelle</div><div class="layer-desc" id="curSource">—</div></div>
+        <button class="source-btn" id="switchSource">Changer</button>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Zones de chasse</div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#2a5c8a"></div>
+        <div class="layer-info"><div class="layer-name">Zones 1–29</div><div class="layer-desc" id="desc-zones">chargement…</div></div>
+        <label class="toggle"><input type="checkbox" data-layer="zones" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Territoires fauniques</div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#7a8a3e"></div>
+        <div class="layer-info"><div class="layer-name">ZEC</div><div class="layer-desc" id="desc-zec">chargement…</div></div>
+        <label class="toggle"><input type="checkbox" data-layer="zec" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#a04a28"></div>
+        <div class="layer-info"><div class="layer-name">Pourvoiries (DE)</div><div class="layer-desc" id="desc-pourvoirie">chargement…</div></div>
+        <label class="toggle"><input type="checkbox" data-layer="pourvoirie" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#3d5234"></div>
+        <div class="layer-info"><div class="layer-name">Réserves fauniques</div><div class="layer-desc" id="desc-reserve">chargement…</div></div>
+        <label class="toggle"><input type="checkbox" data-layer="reserve" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#b88a3e"></div>
+        <div class="layer-info"><div class="layer-name">Parcs nationaux</div><div class="layer-desc" id="desc-parc">chargement…</div></div>
+        <label class="toggle"><input type="checkbox" data-layer="parc" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Cadastre</div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:transparent;border:1px solid var(--line)"></div>
+        <div class="layer-info"><div class="layer-name">Lots cadastraux</div><div class="layer-desc" id="desc-cadastre">disponible zoom ≥ 12</div></div>
+        <label class="toggle"><input type="checkbox" data-layer="cadastre" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
+        PMTiles local requis.<br>
+        <code style="color:var(--moss)">python pipeline/generate_pmtiles.py --region mauricie</code>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Données hors-ligne</div>
+      <div id="offlineRows">
+        <div class="offline-row"><div class="offline-status missing" id="os-zones">◌</div><div class="layer-name">Zones de chasse</div></div>
+        <div class="offline-row"><div class="offline-status missing" id="os-zec">◌</div><div class="layer-name">ZEC</div></div>
+        <div class="offline-row"><div class="offline-status missing" id="os-pourvoirie">◌</div><div class="layer-name">Pourvoiries (DE)</div></div>
+        <div class="offline-row"><div class="offline-status missing" id="os-reserve">◌</div><div class="layer-name">Réserves fauniques</div></div>
+        <div class="offline-row"><div class="offline-status missing" id="os-parc">◌</div><div class="layer-name">Parcs nationaux</div></div>
+      </div>
+      <div class="offline-footer">
+        <span class="offline-size" id="cacheSize">Calcul…</span>
+        <button class="source-btn" id="clearCacheBtn">Vider le cache</button>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Source des données</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark);line-height:1.7">
+        MRNF — TRQ (ArcGIS REST)<br>
+        Règlements : espèces par zone écologique<br>
+        Dates/quotas officiels : <a href="https://www.mrnf.gouv.qc.ca/faune/chasse/" target="_blank" rel="noopener" style="color:var(--zone-blue)">mrnf.gouv.qc.ca</a>
+      </div>
+    </div>
+
+  </div>
+</aside>
+
+<script>
+(function() {
+  'use strict';
+
+  var $ = function(id) { return document.getElementById(id); };
+
+  // ── SERVICE WORKER ──────────────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function() {});
+  }
+
+  // ── INDICATEUR RÉSEAU ───────────────────────────────────────────────────
+  function updateNetworkStatus() {
+    var online = navigator.onLine;
+    var badge = $('netBadge'), label = $('netLabel');
+    if (!badge || !label) return;
+    badge.classList.toggle('offline', !online);
+    label.textContent = online ? 'En ligne' : 'Hors ligne';
+  }
+  window.addEventListener('online',  updateNetworkStatus);
+  window.addEventListener('offline', updateNetworkStatus);
+  updateNetworkStatus();
+
+  // ── CACHE STATUS ────────────────────────────────────────────────────────
+  var LAYER_PATTERNS = { zones: 'ZoneChasse', zec: '/16/query', pourvoirie: '/8/query', reserve: '/11/query', parc: '/5/query' };
+
+  function updateOfflinePanel() {
+    if (!('caches' in window)) { $('cacheSize').textContent = 'Cache API non disponible'; return; }
+    caches.open('qub-hunter-mrnf-v1').then(function(cache) {
+      cache.keys().then(function(keys) {
+        var urls = keys.map(function(r) { return r.url; });
+        Object.keys(LAYER_PATTERNS).forEach(function(key) {
+          var cached = urls.some(function(u) { return u.indexOf(LAYER_PATTERNS[key]) !== -1; });
+          var el = $('os-' + key);
+          if (!el) return;
+          el.textContent = cached ? '✓' : '◌';
+          el.className = 'offline-status ' + (cached ? 'cached' : 'missing');
+        });
+      });
+    }).catch(function() {});
+    if (navigator.storage && navigator.storage.estimate) {
+      navigator.storage.estimate().then(function(est) {
+        var used = est.usage || 0;
+        var el = $('cacheSize');
+        if (!el) return;
+        el.textContent = used < 1048576 ? Math.round(used / 1024) + ' Ko utilisés' : (used / 1048576).toFixed(1) + ' Mo utilisés';
+      }).catch(function() { var el = $('cacheSize'); if (el) el.textContent = '—'; });
+    }
+  }
+
+  $('clearCacheBtn').addEventListener('click', function() {
+    if (!('caches' in window)) return;
+    caches.keys().then(function(keys) { return Promise.all(keys.map(function(k) { return caches.delete(k); })); }).then(updateOfflinePanel);
+  });
+
+  // ── ERREURS ─────────────────────────────────────────────────────────────
+  function showError(msg) { var em = $('errorMsg'); if (em) em.textContent = msg; $('errorBox').classList.add('visible'); }
+
+  // ── LOADING ─────────────────────────────────────────────────────────────
+  var loadingCount = 0;
+  function startLoading(msg) { loadingCount++; $('loadingBadge').classList.remove('hidden'); if (msg) $('loadingMsg').textContent = msg; }
+  function stopLoading() { loadingCount = Math.max(0, loadingCount - 1); if (loadingCount === 0) $('loadingBadge').classList.add('hidden'); }
+
+  // ── DONNÉES RÈGLEMENTS ──────────────────────────────────────────────────
+  // Espèces chassables par zone (répartition écologique générale)
+  // ⚠ Les dates, quotas et méthodes exactes varient chaque année — consultez le règlement MRNF officiel
+  var ESPECES_PAR_ZONE = {
+    '1':  ['orignal','ours'],
+    '2':  ['orignal','ours'],
+    '3':  ['orignal','ours'],
+    '4':  ['orignal','ours'],
+    '5':  ['orignal','ours','cerf'],
+    '6':  ['orignal','ours','cerf'],
+    '7':  ['orignal','ours','cerf'],
+    '8':  ['orignal','ours','cerf','dinde'],
+    '9':  ['orignal','ours','cerf','dinde'],
+    '10': ['orignal','ours','cerf','dinde'],
+    '11': ['orignal','ours','cerf','dinde'],
+    '12': ['ours','cerf','dinde'],
+    '13': ['ours','cerf','dinde'],
+    '14': ['orignal','ours'],
+    '15': ['orignal','ours'],
+    '16': ['orignal','ours'],
+    '17': ['orignal','ours'],
+    '18': ['orignal','ours'],
+    '19': ['orignal','ours','caribou'],
+    '20': ['orignal','ours','caribou'],
+    '21': ['orignal','ours'],
+    '22': ['orignal','ours'],
+    '23': ['orignal','ours'],
+    '24': ['orignal','ours'],
+    '25': ['orignal','ours'],
+    '26': ['orignal','ours'],
+    '27': ['orignal','ours'],
+    '28': ['orignal','ours'],
+    '29': ['orignal','ours']
+  };
+
+  var ESPECE_INFO = {
+    orignal: { nom: 'Orignal',           emoji: '🫎', saison: 'oct–nov (variable)' },
+    cerf:    { nom: 'Cerf de Virginie',  emoji: '🦌', saison: 'oct–nov (variable)' },
+    ours:    { nom: 'Ours noir',         emoji: '🐻', saison: 'sep–nov (variable)' },
+    dinde:   { nom: 'Dindon sauvage',    emoji: '🦃', saison: 'avr–mai (variable)' },
+    caribou: { nom: 'Caribou',           emoji: '🦌', saison: 'sur permis spécial' }
+  };
+
+  var REGLEMENTS_TYPES = {
+    zec:        { badge: 'Chasse permise',  badgeCls: 'badge-vert',   detail: 'Membre ou permis journalier requis · règles selon la zone de gestion' },
+    pourvoirie: { badge: 'Sur invitation',  badgeCls: 'badge-gris',   detail: 'Réservation auprès du pourvoyeur requise' },
+    reserve:    { badge: 'Contingentement', badgeCls: 'badge-orange', detail: 'Permis SÉPAQ requis · quota strict par territoire' },
+    parc:       { badge: 'Chasse interdite',badgeCls: 'badge-rouge',  detail: 'Parc national — aucune activité de chasse permise' }
+  };
+
+  var MRNF_URL = 'https://www.mrnf.gouv.qc.ca/faune/chasse/';
+
+  // Extrait le numéro de zone depuis les propriétés GeoJSON
+  function zoneNumero(props) {
+    var raw = props.NO_ZONE || props.ZONE_NO || props.NOM_ZON || props.NOM || props.NAME || '';
+    var m = String(raw).match(/\d+/);
+    return m ? String(parseInt(m[0], 10)) : null;
+  }
+
+  // Construit le HTML du popup selon le type de couche
+  function buildPopupHTML(key, nom, isLive, props) {
+    var html = '<div class="popup-type">' + typeLabel(key) + '</div>' +
+               '<div class="popup-title">' + nom + '</div>';
+
+    if (key === 'zones') {
+      var num = zoneNumero(props || {});
+      var especes = num ? ESPECES_PAR_ZONE[num] : null;
+      html += '<div class="popup-reglements">';
+      if (especes && especes.length > 0) {
+        html += '<div class="regl-header">Espèces chassables</div>';
+        especes.forEach(function(e) {
+          var info = ESPECE_INFO[e];
+          if (!info) return;
+          html += '<div class="regl-row">' +
+            '<span class="regl-emoji">' + info.emoji + '</span>' +
+            '<span class="regl-nom">' + info.nom + '</span>' +
+            '<span class="regl-saison">' + info.saison + '</span>' +
+            '</div>';
+        });
+      } else {
+        html += '<div class="regl-detail">Consultez le règlement MRNF pour les espèces de cette zone.</div>';
+      }
+      html += '<div class="regl-disclaimer">⚠ Dates et quotas exacts : voir règlement officiel MRNF</div>' +
+              '<a class="popup-mrnf-link" href="' + MRNF_URL + '" target="_blank" rel="noopener">Règlement officiel MRNF →</a>' +
+              '</div>';
+    } else {
+      var reg = REGLEMENTS_TYPES[key];
+      if (reg) {
+        html += '<div class="popup-reglements">' +
+          '<span class="regl-badge ' + reg.badgeCls + '">' + reg.badge + '</span>' +
+          '<div class="regl-detail">' + reg.detail + '</div>' +
+          '</div>';
+      }
+    }
+
+    html += '<div class="popup-row" style="margin-top:8px"><span class="label">source</span><span>' +
+      (isLive ? 'MRNF officiel' : 'données démo') + '</span></div>';
+
+    return html;
+  }
+
+  // ── TUILES ──────────────────────────────────────────────────────────────
+  var TILE_SOURCES = [
+    { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png','https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png','https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
+    { name: 'OSM', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], attrib: '© OpenStreetMap' },
+    { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' }
+  ];
+  var currentSourceIdx = 0;
+
+  function makeStyle(src) {
+    return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: 256, attribution: src.attrib, maxzoom: 19 } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
+  }
+
+  function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
+  setSourceLabel(TILE_SOURCES[0].name);
+
+  if (typeof maplibregl === 'undefined') { showError('MapLibre GL non chargé.'); return; }
+
+  // ── PMTILES ─────────────────────────────────────────────────────────────
+  var CADASTRE_PMTILES = './pmtiles/cadastre_mauricie.pmtiles';
+  var pmtilesAvailable = false;
+  if (typeof pmtiles !== 'undefined') {
+    var protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+    pmtilesAvailable = true;
+  }
+
+  var map;
+  try {
+    map = new maplibregl.Map({ container: 'map', style: makeStyle(TILE_SOURCES[0]), center: [-71.5, 50.0], zoom: 5, minZoom: 3, maxZoom: 18, attributionControl: { compact: true }, useWebWorkers: false });
+  } catch (err) { showError('Init carte : ' + err.message); return; }
+
+  // ── MRNF ────────────────────────────────────────────────────────────────
+  var MRNF_BASE = 'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Territoire/TRQ_WMS/MapServer';
+  var MRNF_LAYERS = {
+    zec:        { id: 16, name: 'ZEC',                   color: '#7a8a3e', fillOpacity: 0.5 },
+    pourvoirie: { id: 8,  name: 'Pourvoirie (DE)',        color: '#a04a28', fillOpacity: 0.5 },
+    reserve:    { id: 11, name: 'Réserve faunique',       color: '#3d5234', fillOpacity: 0.5 },
+    parc:       { id: 5,  name: 'Parc national (Québec)', color: '#b88a3e', fillOpacity: 0.38 }
+  };
+  var ZONES_URL = 'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Territoire/ZoneChasse/MapServer/0/query';
+  var QC_BBOX = '-79.8,44.9,-57.1,62.6';
+
+  function arcgisQuery(baseUrl, layerId, callback) {
+    var params = ['where=1%3D1','outFields=*','f=geojson','resultRecordCount=2000','geometry='+encodeURIComponent(QC_BBOX),'geometryType=esriGeometryEnvelope','inSR=4326','spatialRel=esriSpatialRelIntersects','maxAllowableOffset=0.005'].join('&');
+    fetch(baseUrl + '/' + layerId + '/query?' + params)
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d) { if (d.error) throw new Error(d.error.message || 'ArcGIS error'); callback(null, d); })
+      .catch(function(e) { callback(e, null); });
+  }
+
+  function nameFromProps(props) {
+    return props.NOM || props.NOM_TER || props.NOM_ZEC || props.NOM_ZON || props.NAME || props.Nom || props.nom || props.ZONE_NO || props.NO_ZONE || '(sans nom)';
+  }
+  function typeLabel(key) { return { zec:'ZEC', pourvoirie:'Pourvoirie (DE)', reserve:'Réserve faunique', parc:'Parc national', zones:'Zone de chasse' }[key] || key; }
+  function statusForType(key) { return { zec:'Chasse permise (membre)', pourvoirie:'Permission du pourvoyeur requise', reserve:'Réservation SÉPAQ requise', parc:'Chasse interdite', zones:'Voir règlement annuel MRNF' }[key] || ''; }
+
+  // ── DÉMO ────────────────────────────────────────────────────────────────
+  function polyDemo(name, type, cx, cy, dx, dy) {
+    var seed = 0; for (var i = 0; i < name.length; i++) seed += name.charCodeAt(i);
+    var rand = function(i) { var x = Math.sin(seed + i * 137.5) * 10000; return x - Math.floor(x); };
+    var pts = []; var n = 8;
+    for (var k = 0; k < n; k++) { var angle = (k / n) * Math.PI * 2; var r = 0.7 + rand(k) * 0.5; pts.push([cx + Math.cos(angle) * dx * r, cy + Math.sin(angle) * dy * r]); }
+    pts.push(pts[0]);
+    return { type:'Feature', properties:{ NOM:name, type:type }, geometry:{ type:'Polygon', coordinates:[pts] } };
+  }
+
+  function demoZonesChasse() {
+    var features = []; var pos = [[-74,47.5,1.2,0.8],[-76,48.5,1.4,0.9],[-71,48.5,1.0,0.8],[-68,48.8,1.2,0.9],[-65,48.5,1.0,0.7],[-73,46.5,1.1,0.8],[-70,46.8,0.9,0.7],[-66,47.5,1.0,0.8]];
+    for (var i = 0; i < pos.length; i++) { var p = pos[i]; features.push(polyDemo('Zone '+(i+1),'Zone de chasse',p[0],p[1],p[2],p[3])); }
+    return { type:'FeatureCollection', features:features };
+  }
+
+  var DEMO_DATA = {
+    zec:       { type:'FeatureCollection', features:[ polyDemo('ZEC Bessonne','ZEC',-73.4,47.6,0.4,0.3), polyDemo('ZEC des Nymphes','ZEC',-74.5,46.8,0.3,0.25), polyDemo('ZEC Mazana','ZEC',-75.2,46.5,0.35,0.3), polyDemo('ZEC Petawaga','ZEC',-75.8,47.0,0.4,0.35), polyDemo('ZEC des Martres','ZEC',-71.2,47.9,0.3,0.25), polyDemo('ZEC Buteux-Bas-Saguenay','ZEC',-70.5,48.4,0.45,0.35), polyDemo('ZEC Onatchiway','ZEC',-71.0,49.0,0.5,0.4), polyDemo('ZEC du Lac-au-Sable','ZEC',-71.8,47.2,0.3,0.25) ] },
+    pourvoirie:{ type:'FeatureCollection', features:[ polyDemo('Pourvoirie du Lac Berval','Pourvoirie DE',-75.5,46.2,0.15,0.12), polyDemo('Pourvoirie Saint-Zénon','Pourvoirie DE',-73.8,46.5,0.18,0.15), polyDemo('Pourvoirie du Triton','Pourvoirie DE',-72.6,47.5,0.2,0.18) ] },
+    reserve:   { type:'FeatureCollection', features:[ polyDemo('Réserve faunique des Laurentides','Réserve faunique',-71.3,47.6,0.9,0.7), polyDemo('Réserve faunique de Portneuf','Réserve faunique',-72.0,47.1,0.5,0.4), polyDemo('Réserve faunique Mastigouche','Réserve faunique',-73.1,46.8,0.6,0.5), polyDemo('Réserve faunique La Vérendrye','Réserve faunique',-76.5,47.3,1.2,0.9), polyDemo('Réserve faunique des Chic-Chocs','Réserve faunique',-65.8,48.9,0.4,0.3) ] },
+    parc:      { type:'FeatureCollection', features:[ polyDemo('Parc national de la Mauricie','Parc national',-72.9,46.8,0.4,0.3), polyDemo('Parc national des Hautes-Gorges','Parc national',-70.4,47.9,0.35,0.28), polyDemo('Parc national de la Jacques-Cartier','Parc national',-71.3,47.2,0.3,0.25) ] }
+  };
+
+  // ── AJOUT DES COUCHES ────────────────────────────────────────────────────
+  function addLayer(key, geojson, color, fillOpacity, isLive) {
+    var sourceId = 'src-' + key, fillId = 'fill-' + key, lineId = 'line-' + key;
+    if (map.getSource(sourceId)) { map.getSource(sourceId).setData(geojson); return; }
+
+    map.addSource(sourceId, { type:'geojson', data:geojson });
+    map.addLayer({ id:fillId, type:'fill', source:sourceId, paint:{ 'fill-color':color, 'fill-opacity':fillOpacity } });
+    map.addLayer({ id:lineId, type:'line', source:sourceId, paint:{ 'line-color':color, 'line-width':key==='zones'?1.5:1.8, 'line-opacity':0.9 } });
+
+    map.on('click', fillId, function(e) {
+      var f = e.features[0];
+      var nom = nameFromProps(f.properties);
+      var html = buildPopupHTML(key, nom, isLive, f.properties);
+      new maplibregl.Popup({ offset:10, closeButton:true, maxWidth:'300px' })
+        .setLngLat(e.lngLat).setHTML(html).addTo(map);
+    });
+    map.on('mouseenter', fillId, function() { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', fillId, function() { map.getCanvas().style.cursor = ''; });
+  }
+
+  function loadMRNFLayer(key, layerDef) {
+    startLoading('Chargement ' + layerDef.name + '…');
+    arcgisQuery(MRNF_BASE, layerDef.id, function(err, data) {
+      stopLoading();
+      var descEl = $('desc-' + key);
+      var hasData = !err && data && data.features && data.features.length > 0;
+      if (hasData) {
+        addLayer(key, data, layerDef.color, layerDef.fillOpacity, true);
+        if (descEl) descEl.textContent = data.features.length + ' territoires (MRNF)';
+      } else {
+        var demo = DEMO_DATA[key];
+        addLayer(key, demo, layerDef.color, layerDef.fillOpacity, false);
+        if (descEl) descEl.textContent = demo.features.length + ' territoires (démo)';
+      }
+      updateOfflinePanel();
+    });
+  }
+
+  function loadZonesChasse() {
+    startLoading('Zones de chasse…');
+    var params = ['where=1%3D1','outFields=*','f=geojson','resultRecordCount=50','maxAllowableOffset=0.01'].join('&');
+    fetch(ZONES_URL + '?' + params)
+      .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data) {
+        stopLoading();
+        if (data.error || !data.features || !data.features.length) throw new Error('vide');
+        addLayer('zones', data, '#2a5c8a', 0.15, true);
+        var el = $('desc-zones'); if (el) el.textContent = data.features.length + ' zones (MRNF)';
+        updateOfflinePanel();
+      })
+      .catch(function() {
+        stopLoading();
+        var demo = demoZonesChasse();
+        addLayer('zones', demo, '#2a5c8a', 0.15, false);
+        var el = $('desc-zones'); if (el) el.textContent = demo.features.length + ' zones (démo)';
+        updateOfflinePanel();
+      });
+  }
+
+  function loadCadastre() {
+    var descEl = $('desc-cadastre');
+    if (!pmtilesAvailable) { if (descEl) descEl.textContent = 'pmtiles.js non chargé'; return; }
+    fetch(CADASTRE_PMTILES, { method:'HEAD' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('absent');
+        map.addSource('src-cadastre', { type:'vector', url:'pmtiles://'+CADASTRE_PMTILES, attribution:'© MRNF — Cadastre rénové du Québec' });
+        map.addLayer({ id:'line-cadastre', type:'line', source:'src-cadastre', 'source-layer':'cadastre', minzoom:12, paint:{ 'line-color':'#8a7a5a', 'line-width':['interpolate',['linear'],['zoom'],12,0.4,16,1.2], 'line-opacity':0.7 } });
+        map.addLayer({ id:'label-cadastre', type:'symbol', source:'src-cadastre', 'source-layer':'cadastre', minzoom:14, layout:{ 'text-field':['get','NO_LOT'], 'text-font':['literal',['Open Sans Regular']], 'text-size':['interpolate',['linear'],['zoom'],14,9,16,11], 'text-max-width':6 }, paint:{ 'text-color':'#4a3829', 'text-halo-color':'rgba(240,232,214,0.85)', 'text-halo-width':1 } });
+        map.on('click','line-cadastre',function(e) {
+          var f=e.features&&e.features[0]; if(!f) return; var p=f.properties||{};
+          var html='<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot '+(p.NO_LOT||'—')+'</div><div class="popup-row"><span class="label">N° cadastre</span><span>'+(p.NO_CADASTRE||'—')+'</span></div><div class="popup-row"><span class="label">Superficie</span><span>'+(p.SUPERFICIE?Math.round(p.SUPERFICIE)+' m²':'—')+'</span></div>';
+          new maplibregl.Popup({offset:10,closeButton:true}).setLngLat(e.lngLat).setHTML(html).addTo(map);
+        });
+        map.on('mouseenter','line-cadastre',function(){map.getCanvas().style.cursor='pointer';});
+        map.on('mouseleave','line-cadastre',function(){map.getCanvas().style.cursor='';});
+        if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 12)';
+        var leg = $('legend-cadastre'); if (leg) leg.style.display = 'flex';
+      })
+      .catch(function() { if (descEl) descEl.textContent = 'PMTiles absent — générez-le'; });
+  }
+
+  function loadAllLayers() {
+    loadZonesChasse();
+    Object.keys(MRNF_LAYERS).forEach(function(key) { loadMRNFLayer(key, MRNF_LAYERS[key]); });
+    loadCadastre();
+    $('legend').classList.add('visible');
+    updateOfflinePanel();
+  }
+
+  map.on('load', function() { loadAllLayers(); updateCompass(); });
+  map.on('styledata', function() { if (!map.getSource('src-zec')) loadAllLayers(); });
+
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch:false }), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({ unit:'metric' }), 'bottom-right');
+
+  // ── COORDONNÉES ──────────────────────────────────────────────────────────
+  function updateCompass() { if (!map) return; var c = map.getCenter(); $('lat').textContent = c.lat.toFixed(4)+'°'; $('lon').textContent = c.lng.toFixed(4)+'°'; $('zm').textContent = map.getZoom().toFixed(1); }
+  map.on('move', updateCompass);
+
+  // ── SOURCE SWITCHER ───────────────────────────────────────────────────────
+  $('switchSource').addEventListener('click', function() {
+    currentSourceIdx = (currentSourceIdx + 1) % TILE_SOURCES.length;
+    var src = TILE_SOURCES[currentSourceIdx]; setSourceLabel(src.name); map.setStyle(makeStyle(src));
+  });
+
+  // ── GÉOLOCALISATION ───────────────────────────────────────────────────────
+  try {
+    var geoCtrl = new maplibregl.GeolocateControl({ positionOptions:{enableHighAccuracy:true}, trackUserLocation:true, showUserHeading:true, fitBoundsOptions:{maxZoom:14} });
+    map.addControl(geoCtrl);
+    map.once('idle', function() { var ctrl = document.querySelector('.maplibregl-ctrl-geolocate'); if (ctrl) ctrl.style.display = 'none'; });
+    $('geoFab').addEventListener('click', function() { var ctrl = document.querySelector('.maplibregl-ctrl-geolocate'); if (ctrl) ctrl.click(); else showError('Géolocalisation indisponible (HTTPS requis)'); });
+  } catch(e) {}
+
+  // ── PANEL ─────────────────────────────────────────────────────────────────
+  var panel = $('panel'), panelHandle = $('panelHandle'), panelToggle = $('panelToggle'), panelMeta = $('panelMeta');
+
+  function setPanelOpen(open) {
+    panel.classList.toggle('open', open);
+    panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
+    panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
+    if (open) updateOfflinePanel();
+  }
+
+  var dragStartY = null;
+  panelHandle.addEventListener('touchstart', function(e) { dragStartY = e.touches[0].clientY; }, { passive:true });
+  panelHandle.addEventListener('touchmove', function(e) {
+    if (dragStartY === null) return;
+    var dy = e.touches[0].clientY - dragStartY;
+    if (dy < -30) { setPanelOpen(true); dragStartY = null; }
+    else if (dy > 30) { setPanelOpen(false); dragStartY = null; }
+  }, { passive:true });
+  panelHandle.addEventListener('touchend', function() { dragStartY = null; });
+  panelHandle.addEventListener('click', function() { setPanelOpen(!panel.classList.contains('open')); });
+  panelToggle.addEventListener('click', function() { setPanelOpen(!panel.classList.contains('open')); });
+
+  // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
+  var inputs = document.querySelectorAll('input[data-layer]');
+  for (var i = 0; i < inputs.length; i++) {
+    (function(input) {
+      input.addEventListener('change', function() {
+        var key = input.getAttribute('data-layer');
+        var vis = input.checked ? 'visible' : 'none';
+        var ids = key === 'cadastre' ? ['line-cadastre','label-cadastre'] : ['fill-'+key,'line-'+key];
+        ids.forEach(function(id) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
+      });
+    })(inputs[i]);
+  }
+
+  // ── RECHERCHE ─────────────────────────────────────────────────────────────
+  var searchOverlay = $('searchOverlay'), searchInput = $('searchInput'), searchResults = $('searchResults');
+  var searchDebounce = null, activeMarker = null;
+
+  $('searchToggle').addEventListener('click', function() { searchOverlay.classList.add('open'); setTimeout(function() { searchInput.focus(); }, 300); });
+  $('searchClose').addEventListener('click', function() { searchOverlay.classList.remove('open'); searchInput.value = ''; searchResults.innerHTML = ''; });
+
+  function showSearchResults(items) {
+    if (!items || !items.length) { searchResults.innerHTML = '<div class="search-empty">Aucun résultat</div>'; return; }
+    var html = '';
+    items.forEach(function(item) {
+      html += '<div class="search-result-item" data-lng="'+item.lng+'" data-lat="'+item.lat+'">' +
+        '<div class="r-type">'+(item.type||'Lieu')+'</div><div class="r-name">'+item.name+'</div>' +
+        '<div class="r-coord">'+item.lat.toFixed(4)+', '+item.lng.toFixed(4)+'</div></div>';
+    });
+    searchResults.innerHTML = html;
+    searchResults.querySelectorAll('.search-result-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var lng = parseFloat(el.getAttribute('data-lng')), lat = parseFloat(el.getAttribute('data-lat'));
+        map.flyTo({ center:[lng,lat], zoom:12, duration:1000 });
+        if (activeMarker) activeMarker.remove();
+        activeMarker = new maplibregl.Marker({ color:'#b88a3e' }).setLngLat([lng,lat]).addTo(map);
+        searchOverlay.classList.remove('open'); searchInput.value = ''; searchResults.innerHTML = '';
+      });
+    });
+  }
+
+  function iChercheSearch(query) {
+    return fetch('https://geoegl.msp.gouv.qc.ca/apis/icherche/geocode?q='+encodeURIComponent(query)+'&type=adresse,municipalite,mrc,cadastre&limit=6&epsg=4326')
+      .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data) {
+        var items = [];
+        if (data && data.features) data.features.forEach(function(f) {
+          var coords = f.geometry && f.geometry.coordinates; if (!coords) return;
+          var lng = Array.isArray(coords[0]) ? coords[0][0] : coords[0], lat = Array.isArray(coords[0]) ? coords[0][1] : coords[1];
+          items.push({ name: f.properties.recherche||f.properties.nom||f.properties.name||query, type: f.properties.type||f.geometry.type, lng:lng, lat:lat });
+        });
+        return items;
+      });
+  }
+
+  function tryCoordinateSearch(query) {
+    var m = query.trim().match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/); if (!m) return null;
+    var a = parseFloat(m[1]), b = parseFloat(m[2]), lat, lng;
+    if (a>=44&&a<=63&&b>=-80&&b<=-57) { lat=a; lng=b; } else if (b>=44&&b<=63&&a>=-80&&a<=-57) { lat=b; lng=a; } else return null;
+    return [{ name: lat.toFixed(4)+', '+lng.toFixed(4), type:'Coordonnées', lat:lat, lng:lng }];
+  }
+
+  function doSearch(query) {
+    query = query.trim(); if (query.length < 2) { searchResults.innerHTML=''; return; }
+    var coordResult = tryCoordinateSearch(query); if (coordResult) { showSearchResults(coordResult); return; }
+    searchResults.innerHTML = '<div class="search-empty">Recherche…</div>';
+    iChercheSearch(query).then(showSearchResults).catch(function() {
+      var local = searchLocalLayers(query); showSearchResults(local.length ? local : null);
+    });
+  }
+
+  function searchLocalLayers(query) {
+    var results = [], q = query.toLowerCase();
+    ['zec','pourvoirie','reserve','parc','zones'].forEach(function(key) {
+      var src = map.getSource('src-'+key); if (!src||!src._data||!src._data.features) return;
+      src._data.features.forEach(function(f) {
+        var nom = nameFromProps(f.properties||{}); if (nom.toLowerCase().indexOf(q)===-1) return;
+        var coords = f.geometry&&f.geometry.coordinates; if (!coords) return;
+        var pts = f.geometry.type==='Polygon'?coords[0]:f.geometry.type==='MultiPolygon'?coords[0][0]:null; if(!pts||!pts.length) return;
+        var sumLng=0,sumLat=0; pts.forEach(function(p){sumLng+=p[0];sumLat+=p[1];});
+        results.push({ name:nom, type:typeLabel(key), lng:sumLng/pts.length, lat:sumLat/pts.length });
+      });
+    });
+    return results.slice(0, 6);
+  }
+
+  searchInput.addEventListener('input', function() { clearTimeout(searchDebounce); searchDebounce = setTimeout(function(){ doSearch(searchInput.value); }, 400); });
+  searchInput.addEventListener('keydown', function(e) { if(e.key==='Enter'){clearTimeout(searchDebounce);doSearch(searchInput.value);} if(e.key==='Escape'){$('searchClose').click();} });
+
+})();
+</script>
+
+</body>
+</html>
