@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#2a3826" />
+<title>Qub Hunter — Carte de chasse du Québec</title>
+
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inria+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --forest-deep: #1d2818; --forest: #2a3826; --forest-mid: #3d5234;
+  --moss: #6b7d4a; --bark: #4a3829; --bark-light: #7a5d44;
+  --paper: #f0e8d6; --paper-warm: #e8dcc0; --paper-aged: #d4c5a0;
+  --ink: #1a1410; --rust: #a04a28; --blood: #6b1a14; --gold: #b88a3e;
+  --line: #8a7a5a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: 'Inria Sans', sans-serif;
+  background: var(--paper); color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+#map { position: absolute; inset: 0; background: var(--paper-warm); }
+
+.header {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  padding: env(safe-area-inset-top) 16px 12px;
+  background: linear-gradient(to bottom, rgba(29,40,24,0.96) 0%, rgba(29,40,24,0.88) 70%, transparent 100%);
+  pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+}
+.header > * { pointer-events: auto; }
+
+.brand { padding-top: 8px; display: flex; align-items: baseline; gap: 10px; }
+.brand-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700; font-style: italic; font-size: 26px;
+  color: var(--paper); letter-spacing: -0.01em; line-height: 1;
+}
+.brand-mark::first-letter { color: var(--gold); }
+.brand-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; color: var(--paper-aged);
+  text-transform: uppercase; letter-spacing: 0.18em; padding-bottom: 2px;
+}
+
+.icon-btn {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid rgba(212,197,160,0.3);
+  background: rgba(29,40,24,0.85); color: var(--paper);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: grid; place-items: center; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.icon-btn:active { transform: scale(0.92); background: var(--gold); color: var(--forest-deep); }
+.icon-btn svg { width: 20px; height: 20px; }
+
+.panel {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(29,40,24,0.25), 0 -2px 0 rgba(184,138,62,0.15);
+  padding: 6px 0 calc(env(safe-area-inset-bottom) + 12px);
+  transform: translateY(calc(100% - 92px));
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0.18, 1);
+}
+.panel.open { transform: translateY(0); }
+
+.panel-handle {
+  width: 100%; padding: 8px 16px 4px;
+  cursor: grab; user-select: none; -webkit-user-select: none;
+  touch-action: none;
+}
+.panel-handle::before {
+  content: ''; display: block;
+  width: 36px; height: 4px; margin: 0 auto;
+  background: var(--paper-aged); border-radius: 2px;
+}
+
+.panel-summary {
+  padding: 8px 20px 12px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  border-bottom: 1px dashed var(--paper-aged);
+}
+.panel-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px; font-weight: 600; color: var(--forest);
+}
+.panel-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--bark-light);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+.panel-content { padding: 14px 20px 0; max-height: 60vh; overflow-y: auto; }
+
+.layer-section { margin-bottom: 20px; }
+.section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--bark); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--paper-aged); }
+
+.layer-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid rgba(212,197,160,0.4);
+}
+.layer-row:last-child { border-bottom: none; }
+.layer-swatch {
+  width: 16px; height: 16px; border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0;
+}
+.layer-info { flex: 1; min-width: 0; }
+.layer-name { font-size: 14px; color: var(--ink); line-height: 1.2; }
+.layer-desc {
+  font-size: 11px; color: var(--bark-light); margin-top: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--paper-aged); border-radius: 26px;
+  cursor: pointer; transition: background 0.2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 20px; height: 20px; left: 3px; top: 3px;
+  background: var(--paper); border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--forest-mid); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+.maplibregl-popup-content {
+  background: var(--paper) !important;
+  border: 1px solid var(--bark-light) !important;
+  border-radius: 4px !important; padding: 14px 16px !important;
+  font-family: 'Inria Sans', sans-serif !important;
+  box-shadow: 0 6px 24px rgba(29,40,24,0.3) !important;
+  max-width: 280px !important;
+}
+.popup-type {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--rust); margin-bottom: 4px;
+}
+.popup-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 600; color: var(--forest-deep);
+  line-height: 1.15; margin-bottom: 8px;
+}
+.popup-row {
+  font-size: 12px; color: var(--ink); margin: 3px 0;
+  display: flex; justify-content: space-between; gap: 12px;
+}
+.popup-row .label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--bark-light);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.geo-fab {
+  position: absolute; right: 14px; bottom: 110px; z-index: 9;
+  width: 50px; height: 50px; border-radius: 50%;
+  border: 1px solid var(--bark-light);
+  background: var(--paper);
+  display: grid; place-items: center; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(29,40,24,0.25);
+  transition: all 0.15s;
+}
+.geo-fab:active { transform: scale(0.92); background: var(--gold); }
+.geo-fab svg { width: 22px; height: 22px; color: var(--forest-deep); }
+
+.compass-readout {
+  position: absolute; right: 14px;
+  top: calc(env(safe-area-inset-top) + 64px);
+  z-index: 8;
+  background: rgba(29,40,24,0.85);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--paper); padding: 8px 12px; border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 0.08em;
+  border: 1px solid rgba(212,197,160,0.2);
+  pointer-events: none; line-height: 1.5;
+}
+.compass-readout .label { color: var(--paper-aged); margin-right: 6px; }
+
+.legend {
+  position: absolute; left: 14px; bottom: 110px; z-index: 8;
+  background: rgba(240,232,214,0.94);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--paper-aged);
+  border-radius: 4px; padding: 10px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--ink);
+  box-shadow: 0 4px 14px rgba(29,40,24,0.15);
+  max-width: 180px; display: none;
+}
+.legend.visible { display: block; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+.legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+.error-box {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 70px);
+  left: 14px; right: 14px; z-index: 50;
+  background: var(--blood); color: var(--paper);
+  padding: 12px 14px; border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  display: none;
+}
+.error-box.visible { display: block; }
+.error-box .err-title {
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  font-size: 10px; margin-bottom: 4px; opacity: 0.85;
+}
+.error-box .err-close {
+  float: right; background: transparent;
+  border: 1px solid rgba(240,232,214,0.3);
+  color: var(--paper); padding: 2px 6px;
+  font-size: 10px; border-radius: 2px; cursor: pointer;
+}
+
+/* Diagnostic en bas, toujours visible */
+.diag-overlay {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom) + 100px);
+  left: 14px; right: 14px;
+  max-width: 360px;
+  z-index: 11;
+  background: rgba(29,40,24,0.92);
+  color: var(--paper);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; line-height: 1.5;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  pointer-events: none;
+  max-height: 140px;
+  overflow: hidden;
+}
+.diag-overlay .row { display: flex; justify-content: space-between; gap: 12px; }
+.diag-overlay .row .v { color: var(--gold); }
+.diag-overlay .row .v.ok { color: #9bc97a; }
+.diag-overlay .row .v.err { color: #e88a78; }
+
+@media (min-width: 900px) {
+  .panel {
+    width: 380px; right: auto;
+    border-radius: 0 8px 8px 0;
+    border-right: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+    transform: translateX(0) !important;
+    bottom: 0; top: 0;
+    padding-top: calc(env(safe-area-inset-top) + 80px);
+  }
+  .panel-handle { display: none; }
+  .panel-content { max-height: none; flex: 1; }
+  .header { left: 380px; }
+  .geo-fab { bottom: 30px; }
+  .legend { bottom: 30px; left: 394px; }
+  .diag-overlay { left: 394px; bottom: 30px; }
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<header class="header">
+  <div class="brand">
+    <div class="brand-mark">Qub Hunter</div>
+    <div class="brand-sub">Phase 01 — Diagnostic</div>
+  </div>
+  <button class="icon-btn" id="searchToggle" aria-label="Rechercher">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m21 21-4.35-4.35"></path>
+    </svg>
+  </button>
+</header>
+
+<div class="error-box" id="errorBox">
+  <button class="err-close" onclick="document.getElementById('errorBox').classList.remove('visible')">×</button>
+  <div class="err-title">Erreur</div>
+  <div id="errorMsg"></div>
+</div>
+
+<div class="compass-readout" id="compass">
+  <div><span class="label">LAT</span><span id="lat">—</span></div>
+  <div><span class="label">LON</span><span id="lon">—</span></div>
+  <div><span class="label">ZOOM</span><span id="zm">—</span></div>
+</div>
+
+<div class="legend" id="legend">
+  <div class="legend-row"><div class="legend-swatch" style="background:#7a8a3e;opacity:.55"></div>ZEC</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#a04a28;opacity:.55"></div>Pourvoirie (DE)</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#3d5234;opacity:.55"></div>Réserve faunique</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:#b88a3e;opacity:.55"></div>Parc national</div>
+</div>
+
+<button class="geo-fab" id="geoFab" aria-label="Ma position">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+  </svg>
+</button>
+
+<div class="diag-overlay" id="diagOverlay">
+  <div class="row"><span>Tuiles fond</span><span class="v" id="diagTiles">…</span></div>
+  <div class="row"><span>Polygones</span><span class="v" id="diagPolys">…</span></div>
+  <div class="row"><span>Source fond</span><span class="v" id="diagSource">…</span></div>
+  <div class="row"><span>Dernière erreur</span><span class="v" id="diagLastErr">aucune</span></div>
+</div>
+
+<aside class="panel" id="panel">
+  <div class="panel-handle" id="panelHandle"></div>
+  <div class="panel-summary">
+    <div>
+      <div class="panel-title">Couches du territoire</div>
+      <div class="panel-meta" id="panelMeta">Glissez pour ouvrir</div>
+    </div>
+    <button class="icon-btn" id="panelToggle" style="background:transparent;color:var(--forest);border-color:var(--paper-aged)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"></polyline>
+      </svg>
+    </button>
+  </div>
+  <div class="panel-content">
+
+    <div class="layer-section">
+      <div class="section-label">Fond de carte</div>
+      <div class="layer-row">
+        <div class="layer-info">
+          <div class="layer-name">Source actuelle</div>
+          <div class="layer-desc" id="curSource">—</div>
+        </div>
+        <button id="switchSource" style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 10px;border:1px solid var(--bark-light);background:var(--paper);color:var(--bark);border-radius:3px;text-transform:uppercase;letter-spacing:.1em">Changer</button>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Territoires fauniques</div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#7a8a3e"></div>
+        <div class="layer-info">
+          <div class="layer-name">ZEC</div>
+          <div class="layer-desc">8 territoires démo</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-layer="zec" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#a04a28"></div>
+        <div class="layer-info">
+          <div class="layer-name">Pourvoiries (DE)</div>
+          <div class="layer-desc">3 territoires démo</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-layer="pourvoirie" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#3d5234"></div>
+        <div class="layer-info">
+          <div class="layer-name">Réserves fauniques</div>
+          <div class="layer-desc">5 territoires démo</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-layer="reserve" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="layer-row">
+        <div class="layer-swatch" style="background:#b88a3e"></div>
+        <div class="layer-info">
+          <div class="layer-name">Parcs nationaux</div>
+          <div class="layer-desc">3 territoires démo</div>
+        </div>
+        <label class="toggle"><input type="checkbox" data-layer="parc" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="layer-section">
+      <div class="section-label">Diagnostic complet</div>
+      <div id="diag" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark);line-height:1.6"></div>
+    </div>
+
+  </div>
+</aside>
+
+<script>
+(function() {
+  'use strict';
+
+  var $ = function(id) { return document.getElementById(id); };
+
+  var setStatus = function() {}; // no-op, on utilise diag-overlay
+
+  var showError = function(msg) {
+    var box = $('errorBox');
+    var em = $('errorMsg');
+    if (em) em.textContent = msg;
+    if (box) box.classList.add('visible');
+    var le = $('diagLastErr');
+    if (le) { le.textContent = msg.substring(0, 30); le.className = 'v err'; }
+  };
+
+  var diag = function(msg) {
+    var d = $('diag');
+    if (d) d.innerHTML += '<div>› ' + msg + '</div>';
+  };
+
+  // Compteurs visibles dans diagOverlay
+  var tilesLoaded = 0;
+  var tilesError = 0;
+  var polysAdded = 0;
+
+  function updateDiag() {
+    var t = $('diagTiles');
+    if (t) {
+      t.textContent = tilesLoaded + ' OK · ' + tilesError + ' err';
+      t.className = 'v ' + (tilesLoaded > 0 ? 'ok' : (tilesError > 0 ? 'err' : ''));
+    }
+    var p = $('diagPolys');
+    if (p) {
+      p.textContent = polysAdded + ' couches';
+      p.className = 'v ' + (polysAdded > 0 ? 'ok' : '');
+    }
+  }
+
+  window.addEventListener('error', function(e) {
+    var msg = (e.message || 'Script error');
+    if (e.filename) msg += ' @ ' + e.filename.split('/').pop();
+    if (e.lineno) msg += ' L' + e.lineno;
+    showError(msg);
+    diag('✗ ' + msg);
+  });
+
+  if (typeof maplibregl === 'undefined') {
+    showError('MapLibre GL non chargé.');
+    return;
+  }
+  diag('✓ MapLibre ' + maplibregl.version);
+
+  // ============================================================
+  // Plusieurs sources de tuiles essayées en cascade
+  // (le sandbox de prévisualisation Claude bloque parfois OSM)
+  // ============================================================
+  var TILE_SOURCES = [
+    {
+      name: 'CARTO Voyager',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+      ],
+      attrib: '© CARTO © OSM'
+    },
+    {
+      name: 'OSM',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      ],
+      attrib: '© OpenStreetMap'
+    },
+    {
+      name: 'Stadia OSM Bright',
+      tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'],
+      attrib: '© Stadia Maps © OSM'
+    }
+  ];
+
+  var currentSourceIdx = 0;
+
+  function makeStyle(srcDef) {
+    return {
+      version: 8,
+      sources: {
+        base: {
+          type: 'raster',
+          tiles: srcDef.tiles,
+          tileSize: 256,
+          attribution: srcDef.attrib,
+          maxzoom: 19
+        }
+      },
+      layers: [
+        { id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } },
+        {
+          id: 'base',
+          type: 'raster',
+          source: 'base',
+          paint: {
+            'raster-opacity': 0.85,
+            'raster-saturation': -0.4,
+            'raster-contrast': 0.05,
+            'raster-hue-rotate': 15
+          }
+        }
+      ]
+    };
+  }
+
+  function setSourceLabel(name) {
+    var el = $('curSource');
+    if (el) el.textContent = name;
+    var ds = $('diagSource');
+    if (ds) ds.textContent = name;
+  }
+
+  setSourceLabel(TILE_SOURCES[0].name);
+
+  var map;
+  try {
+    map = new maplibregl.Map({
+      container: 'map',
+      style: makeStyle(TILE_SOURCES[0]),
+      center: [-71.5, 50.0],
+      zoom: 5,
+      minZoom: 3,
+      maxZoom: 18,
+      attributionControl: { compact: true },
+      useWebWorkers: false  // Désactive workers pour compatibilité sandbox
+    });
+    diag('✓ Map créée');
+  } catch (err) {
+    showError('Init carte : ' + err.message);
+    return;
+  }
+
+  // Hook bas niveau pour compter les tuiles chargées/échouées
+  // En interceptant via map.on('data')
+  map.on('data', function(e) {
+    if (e.tile && e.dataType === 'source' && e.sourceId === 'base') {
+      if (e.tile.state === 'loaded') {
+        tilesLoaded++;
+        updateDiag();
+      } else if (e.tile.state === 'errored') {
+        tilesError++;
+        updateDiag();
+      }
+    }
+  });
+
+  map.on('error', function(e) {
+    if (e && e.error) {
+      var msg = e.error.message || String(e.error);
+      // Un échec de tuile : on tente la source suivante
+      if (msg.indexOf('tile') !== -1 || (e.tile)) {
+        tilesError++;
+        updateDiag();
+        if (tilesError > 4 && tilesLoaded === 0 && currentSourceIdx < TILE_SOURCES.length - 1) {
+          currentSourceIdx++;
+          var nextSrc = TILE_SOURCES[currentSourceIdx];
+          diag('⚠ tuiles échec → bascule vers ' + nextSrc.name);
+          setSourceLabel(nextSrc.name);
+          tilesLoaded = 0; tilesError = 0;
+          map.setStyle(makeStyle(nextSrc));
+          map.once('styledata', loadDemoLayers);
+        }
+      } else {
+        diag('⚠ ' + msg);
+      }
+    }
+  });
+
+  // ============================================================
+  // Couches démo
+  // ============================================================
+  var LAYER_DEFS = {
+    zec:        { color: '#7a8a3e', name: 'ZEC' },
+    pourvoirie: { color: '#a04a28', name: 'Pourvoirie' },
+    reserve:    { color: '#3d5234', name: 'Réserve faunique' },
+    parc:       { color: '#b88a3e', name: 'Parc national' }
+  };
+
+  function statusForType(key) {
+    return ({
+      zec: 'Chasse permise (membre)',
+      pourvoirie: 'Permission du pourvoyeur',
+      reserve: 'Réservation SÉPAQ',
+      parc: 'Chasse interdite'
+    })[key] || '';
+  }
+
+  function polyDemo(name, type, cx, cy, dx, dy) {
+    var seed = 0;
+    for (var i = 0; i < name.length; i++) seed += name.charCodeAt(i);
+    var rand = function(i) {
+      var x = Math.sin(seed + i * 137.5) * 10000;
+      return x - Math.floor(x);
+    };
+    var pts = [];
+    var n = 8;
+    for (var k = 0; k < n; k++) {
+      var angle = (k / n) * Math.PI * 2;
+      var r = 0.7 + rand(k) * 0.5;
+      pts.push([cx + Math.cos(angle) * dx * r, cy + Math.sin(angle) * dy * r]);
+    }
+    pts.push(pts[0]);
+    return {
+      type: 'Feature',
+      properties: { name: name, type: type },
+      geometry: { type: 'Polygon', coordinates: [pts] }
+    };
+  }
+
+  function loadDemoLayers() {
+    diag('→ chargement polygones…');
+    polysAdded = 0;
+
+    var demoData = {
+      zec: { type: 'FeatureCollection', features: [
+        polyDemo('ZEC Bessonne', 'ZEC', -73.4, 47.6, 0.4, 0.3),
+        polyDemo('ZEC des Nymphes', 'ZEC', -74.5, 46.8, 0.3, 0.25),
+        polyDemo('ZEC Mazana', 'ZEC', -75.2, 46.5, 0.35, 0.3),
+        polyDemo('ZEC Petawaga', 'ZEC', -75.8, 47.0, 0.4, 0.35),
+        polyDemo('ZEC des Martres', 'ZEC', -71.2, 47.9, 0.3, 0.25),
+        polyDemo('ZEC Buteux-Bas-Saguenay', 'ZEC', -70.5, 48.4, 0.45, 0.35),
+        polyDemo('ZEC Onatchiway', 'ZEC', -71.0, 49.0, 0.5, 0.4),
+        polyDemo('ZEC du Lac-au-Sable', 'ZEC', -71.8, 47.2, 0.3, 0.25)
+      ]},
+      pourvoirie: { type: 'FeatureCollection', features: [
+        polyDemo('Pourvoirie du Lac Berval', 'Pourvoirie DE', -75.5, 46.2, 0.15, 0.12),
+        polyDemo('Pourvoirie Saint-Zénon', 'Pourvoirie DE', -73.8, 46.5, 0.18, 0.15),
+        polyDemo('Pourvoirie du Triton', 'Pourvoirie DE', -72.6, 47.5, 0.2, 0.18)
+      ]},
+      reserve: { type: 'FeatureCollection', features: [
+        polyDemo('Réserve faunique des Laurentides', 'Réserve faunique', -71.3, 47.6, 0.9, 0.7),
+        polyDemo('Réserve faunique de Portneuf', 'Réserve faunique', -72.0, 47.1, 0.5, 0.4),
+        polyDemo('Réserve faunique Mastigouche', 'Réserve faunique', -73.1, 46.8, 0.6, 0.5),
+        polyDemo('Réserve faunique La Vérendrye', 'Réserve faunique', -76.5, 47.3, 1.2, 0.9),
+        polyDemo('Réserve faunique des Chic-Chocs', 'Réserve faunique', -65.8, 48.9, 0.4, 0.3)
+      ]},
+      parc: { type: 'FeatureCollection', features: [
+        polyDemo('Parc national de la Mauricie', 'Parc national', -72.9, 46.8, 0.4, 0.3),
+        polyDemo('Parc national des Hautes-Gorges', 'Parc national', -70.4, 47.9, 0.35, 0.28),
+        polyDemo('Parc national de la Jacques-Cartier', 'Parc national', -71.3, 47.2, 0.3, 0.25)
+      ]}
+    };
+
+    Object.keys(demoData).forEach(function(key) {
+      var sourceId = 'src-' + key;
+      var fillId = 'fill-' + key;
+      var lineId = 'line-' + key;
+
+      // Si la source existe déjà (resize après changement de style), skip
+      if (map.getSource(sourceId)) return;
+
+      map.addSource(sourceId, { type: 'geojson', data: demoData[key] });
+
+      map.addLayer({
+        id: fillId, type: 'fill', source: sourceId,
+        paint: {
+          'fill-color': LAYER_DEFS[key].color,
+          'fill-opacity': key === 'parc' ? 0.4 : 0.55
+        }
+      });
+
+      map.addLayer({
+        id: lineId, type: 'line', source: sourceId,
+        paint: {
+          'line-color': LAYER_DEFS[key].color,
+          'line-width': 1.8, 'line-opacity': 0.95
+        }
+      });
+
+      map.on('click', fillId, function(e) {
+        var f = e.features[0];
+        var html = '<div class="popup-type">' + LAYER_DEFS[key].name + '</div>' +
+          '<div class="popup-title">' + f.properties.name + '</div>' +
+          '<div class="popup-row"><span class="label">type</span><span>' + f.properties.type + '</span></div>' +
+          '<div class="popup-row"><span class="label">statut</span><span>' + statusForType(key) + '</span></div>';
+        new maplibregl.Popup({ offset: 10, closeButton: true })
+          .setLngLat(e.lngLat)
+          .setHTML(html)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', fillId, function() { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', fillId, function() { map.getCanvas().style.cursor = ''; });
+
+      polysAdded++;
+    });
+
+    updateDiag();
+    diag('✓ ' + polysAdded + ' couches polygones');
+    $('legend').classList.add('visible');
+  }
+
+  map.on('load', function() {
+    diag('✓ Carte chargée — premier render');
+    try {
+      loadDemoLayers();
+    } catch (err) {
+      showError('Couches : ' + err.message);
+    }
+  });
+
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+
+  // Coords readout
+  function updateCompass() {
+    if (!map) return;
+    var c = map.getCenter();
+    $('lat').textContent = c.lat.toFixed(4) + '°';
+    $('lon').textContent = c.lng.toFixed(4) + '°';
+    $('zm').textContent = map.getZoom().toFixed(1);
+  }
+  map.on('move', updateCompass);
+  map.on('load', updateCompass);
+
+  // Bouton "Changer source"
+  $('switchSource').addEventListener('click', function() {
+    currentSourceIdx = (currentSourceIdx + 1) % TILE_SOURCES.length;
+    var src = TILE_SOURCES[currentSourceIdx];
+    setSourceLabel(src.name);
+    tilesLoaded = 0; tilesError = 0;
+    updateDiag();
+    map.setStyle(makeStyle(src));
+    map.once('styledata', loadDemoLayers);
+    diag('→ source : ' + src.name);
+  });
+
+  // Géolocalisation (peut être absente dans le sandbox)
+  try {
+    var geoCtrl = new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true,
+      fitBoundsOptions: { maxZoom: 14 }
+    });
+    map.addControl(geoCtrl);
+    map.once('idle', function() {
+      var ctrl = document.querySelector('.maplibregl-ctrl-geolocate');
+      if (ctrl) ctrl.style.display = 'none';
+    });
+    $('geoFab').addEventListener('click', function() {
+      var ctrl = document.querySelector('.maplibregl-ctrl-geolocate');
+      if (ctrl) { ctrl.click(); }
+      else { alert('Géolocalisation indisponible dans cet environnement'); }
+    });
+  } catch (e) {
+    diag('⚠ Géoloc non dispo (sandbox)');
+  }
+
+  // Panel drag
+  var panel = $('panel');
+  var panelHandle = $('panelHandle');
+  var panelToggle = $('panelToggle');
+  var panelMeta = $('panelMeta');
+
+  function setPanelOpen(open) {
+    panel.classList.toggle('open', open);
+    panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
+    panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  var dragStartY = null;
+  panelHandle.addEventListener('touchstart', function(e) {
+    dragStartY = e.touches[0].clientY;
+  }, { passive: true });
+  panelHandle.addEventListener('touchmove', function(e) {
+    if (dragStartY === null) return;
+    var dy = e.touches[0].clientY - dragStartY;
+    if (dy < -30) { setPanelOpen(true); dragStartY = null; }
+    else if (dy > 30) { setPanelOpen(false); dragStartY = null; }
+  }, { passive: true });
+  panelHandle.addEventListener('touchend', function() { dragStartY = null; });
+  panelHandle.addEventListener('click', function() { setPanelOpen(!panel.classList.contains('open')); });
+  panelToggle.addEventListener('click', function() { setPanelOpen(!panel.classList.contains('open')); });
+
+  // Toggles
+  var inputs = document.querySelectorAll('input[data-layer]');
+  for (var i = 0; i < inputs.length; i++) {
+    (function(input) {
+      input.addEventListener('change', function() {
+        var key = input.getAttribute('data-layer');
+        var vis = input.checked ? 'visible' : 'none';
+        ['fill-' + key, 'line-' + key].forEach(function(id) {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+        });
+      });
+    })(inputs[i]);
+  }
+
+  $('searchToggle').addEventListener('click', function() {
+    alert('Recherche par n° de lot — Phase 02');
+  });
+
+  diag('✓ UI prête');
+})();
+</script>
+
+</body>
+</html>

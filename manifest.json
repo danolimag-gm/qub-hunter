@@ -1,0 +1,12 @@
+{
+  "name": "Qub Hunter",
+  "short_name": "Qub Hunter",
+  "description": "Carte de chasse interactive du Québec — ZECs, pourvoiries, zones de chasse",
+  "start_url": "./qub-hunter-phase03.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1d2818",
+  "theme_color": "#2a3826",
+  "lang": "fr-CA",
+  "icons": []
+}

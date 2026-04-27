@@ -1,0 +1,13 @@
+# Données locales (trop lourdes pour git)
+data/raw/
+data/processed/
+data/pmtiles/
+
+# Pipeline Python
+pipeline/venv/
+pipeline/pmtiles/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
