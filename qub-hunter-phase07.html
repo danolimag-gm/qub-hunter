@@ -2055,18 +2055,36 @@
       /* Ajuster le panneau latéral pour ne pas être couvert */
       .panel {
         bottom: 100px;
+        max-height: calc(70vh - 100px);
       }
 
       .geo-fab {
-        bottom: 100px;
+        bottom: 110px;
       }
 
       .wp-fab {
-        bottom: 170px;
+        bottom: 180px;
       }
 
       .legend {
-        bottom: 100px;
+        bottom: 110px;
+      }
+
+      /* Repositionner les panneaux flottants sur mobile */
+      .weather-panel,
+      .solunar-panel,
+      .compass-panel {
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-width: none;
+        z-index: 100;
+      }
+
+      /* Empêcher le panneau latéral de prendre toute la largeur */
+      .panel.open {
+        max-height: 60vh;
       }
     }
 
