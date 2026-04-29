@@ -2009,7 +2009,7 @@
 
       /* ── BARRE D'OUTILS EN BAS ── */
       .mobile-toolbar {
-        display: flex;
+        display: flex !important;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -2018,10 +2018,11 @@
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border-top: 1px solid rgba(212, 197, 160, 0.2);
-        padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-        z-index: 1000;
+        padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+        z-index: 10000;
         justify-content: space-around;
         align-items: center;
+        visibility: visible;
       }
 
       .mobile-toolbar-btn {
@@ -2069,9 +2070,11 @@
       }
     }
 
-    /* Cacher la barre mobile sur desktop */
-    .mobile-toolbar {
-      display: none;
+    /* Desktop: cacher la barre mobile */
+    @media (min-width: 481px) {
+      .mobile-toolbar {
+        display: none !important;
+      }
     }
 
     @media (max-width: 360px) {
