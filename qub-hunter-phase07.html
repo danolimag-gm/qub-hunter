@@ -2054,19 +2054,19 @@
 
       /* Ajuster le panneau latéral pour ne pas être couvert */
       .panel {
-        bottom: 70px;
+        bottom: 100px;
       }
 
       .geo-fab {
-        bottom: 80px;
+        bottom: 100px;
       }
 
       .wp-fab {
-        bottom: 140px;
+        bottom: 170px;
       }
 
       .legend {
-        bottom: 80px;
+        bottom: 100px;
       }
     }
 
@@ -4049,57 +4049,6 @@
 
       $('measureBtn').addEventListener('click', startMeasure);
 
-      // ── BARRE D'OUTILS MOBILE ────────────────────────────────────────────────
-      var mobileSolunarBtn = $('mobileSolunarBtn');
-      var mobileWeatherBtn = $('mobileWeatherBtn');
-      var mobileCompassBtn = $('mobileCompassBtn');
-      var mobileMeasureBtn = $('mobileMeasureBtn');
-      var mobilePanelBtn = $('mobilePanelBtn');
-
-      if (mobileSolunarBtn) {
-        mobileSolunarBtn.addEventListener('click', function () {
-          var panel = $('solunarPanel');
-          if (panel.classList.contains('open')) {
-            panel.classList.remove('open');
-          } else {
-            panel.classList.add('open');
-            var center = map.getCenter();
-            loadSolunar(center.lat, center.lng);
-          }
-        });
-      }
-
-      if (mobileWeatherBtn) {
-        mobileWeatherBtn.addEventListener('click', function () {
-          var panel = $('weatherPanel');
-          if (panel.classList.contains('open')) {
-            panel.classList.remove('open');
-          } else {
-            panel.classList.add('open');
-            var center = map.getCenter();
-            loadWeather(center.lat, center.lng);
-          }
-        });
-      }
-
-      if (mobileCompassBtn) {
-        mobileCompassBtn.addEventListener('click', function () {
-          startCompass();
-        });
-      }
-
-      if (mobileMeasureBtn) {
-        mobileMeasureBtn.addEventListener('click', function () {
-          startMeasure();
-        });
-      }
-
-      if (mobilePanelBtn) {
-        mobilePanelBtn.addEventListener('click', function () {
-          setPanelOpen(!panel.classList.contains('open'));
-        });
-      }
-
       // ── TUILES ──────────────────────────────────────────────────────────────
       var TILE_SOURCES = [
         { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
@@ -4779,6 +4728,57 @@
       panelHandle.addEventListener('touchend', function () { dragStartY = null; });
       panelHandle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
       panelToggle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
+
+      // ── BARRE D'OUTILS MOBILE ────────────────────────────────────────────────
+      var mobileSolunarBtn = $('mobileSolunarBtn');
+      var mobileWeatherBtn = $('mobileWeatherBtn');
+      var mobileCompassBtn = $('mobileCompassBtn');
+      var mobileMeasureBtn = $('mobileMeasureBtn');
+      var mobilePanelBtn = $('mobilePanelBtn');
+
+      if (mobileSolunarBtn) {
+        mobileSolunarBtn.addEventListener('click', function () {
+          var p = $('solunarPanel');
+          if (p.classList.contains('open')) {
+            p.classList.remove('open');
+          } else {
+            p.classList.add('open');
+            var center = map.getCenter();
+            loadSolunar(center.lat, center.lng);
+          }
+        });
+      }
+
+      if (mobileWeatherBtn) {
+        mobileWeatherBtn.addEventListener('click', function () {
+          var p = $('weatherPanel');
+          if (p.classList.contains('open')) {
+            p.classList.remove('open');
+          } else {
+            p.classList.add('open');
+            var center = map.getCenter();
+            loadWeather(center.lat, center.lng);
+          }
+        });
+      }
+
+      if (mobileCompassBtn) {
+        mobileCompassBtn.addEventListener('click', function () {
+          startCompass();
+        });
+      }
+
+      if (mobileMeasureBtn) {
+        mobileMeasureBtn.addEventListener('click', function () {
+          startMeasure();
+        });
+      }
+
+      if (mobilePanelBtn) {
+        mobilePanelBtn.addEventListener('click', function () {
+          setPanelOpen(!panel.classList.contains('open'));
+        });
+      }
 
       // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
       var inputs = document.querySelectorAll('input[data-layer]');
