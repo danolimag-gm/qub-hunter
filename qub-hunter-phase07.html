@@ -418,13 +418,13 @@
       width: 280px;
       max-width: calc(100vw - 28px);
       background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 12px;
+      border: 1px solid rgba(212, 197, 160, 0.3);
+      border-radius: 8px;
       padding: 14px;
-      z-index: 1;
+      z-index: 15000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       transform: translateX(120%);
-      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.18, 1);
+      transition: transform 0.3s ease;
     }
 
     .weather-panel.open {
@@ -554,7 +554,7 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 14px;
-      z-index: 1;
+      z-index: 15001;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       transform: translateX(120%);
       transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.18, 1);
@@ -827,7 +827,7 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 14px;
-      z-index: 1;
+      z-index: 15000;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       transform: translateX(120%);
       transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.18, 1);
@@ -2014,17 +2014,16 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(29, 40, 24, 0.98);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        background: linear-gradient(to top, rgba(29, 40, 24, 0.98) 0%, rgba(29, 40, 24, 0.95) 100%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         border-top: 1px solid rgba(212, 197, 160, 0.2);
-        padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
-        z-index: 20001;
+        padding: 8px 16px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        display: flex;
         justify-content: space-around;
         align-items: center;
-        visibility: visible;
-        pointer-events: auto;
-        touch-action: manipulation;
+        z-index: 10000;
       }
 
       .mobile-toolbar-btn {
@@ -2097,6 +2096,13 @@
       /* Empêcher le panneau latéral de prendre toute la largeur */
       .panel.open {
         max-height: 60vh;
+      }
+
+      /* Agrandir les boutons pour tactile mobile */
+      .wp-footer-btn {
+        padding: 12px 8px;
+        font-size: 11px;
+        min-height: 44px;
       }
     }
 
@@ -5205,10 +5211,11 @@
         });
       }
 
-      searchInput.addEventListener('input', function () { clearTimeout(searchDebnce); searchDebounce = setTimeout(function () { dosearchInput.value); }, 400); });
-      searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
+      searchInput.addEventListener('input', function () { clearTimeout(searchDebnce); searchDebounce = setTimeout(function () { dosearchInput.value); }, 400);
+    });
+    searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
 
-    })();
+    }) ();
   </script>
 
   <!-- BARRE D'OUTILS MOBILE -->
