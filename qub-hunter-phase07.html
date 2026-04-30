@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#2a3826" />
   <title>Qub Hunter — Carte de chasse du Québec</title>
 
@@ -46,13 +47,8 @@
 
     html,
     body {
-      height: 100vh;
-      /* Fallback anciens navigateurs */
-      height: 100dvh;
-      /* Correctif iOS Safari */
-      width: 100vw;
+      height: 100%;
       overflow: hidden;
-      overflow-x: hidden;
       font-family: 'Inria Sans', sans-serif;
       background: var(--paper);
       color: var(--ink);
@@ -412,564 +408,6 @@
       font-size: 8px;
       color: var(--bark-light);
       margin-top: 3px;
-    }
-
-    /* ── WEATHER PANEL ── */
-    .weather-panel {
-      position: absolute;
-      top: 70px;
-      right: 14px;
-      width: 280px;
-      max-width: calc(100vw - 28px);
-      background: var(--paper);
-      border: 1px solid rgba(212, 197, 160, 0.3);
-      border-radius: 8px;
-      padding: 14px;
-      z-index: 15000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      transform: translateX(120%);
-      transition: transform 0.3s ease;
-    }
-
-    .weather-panel.open {
-      transform: translateX(0);
-    }
-
-    .weather-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .weather-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--forest);
-    }
-
-    .weather-close {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid var(--paper-aged);
-      background: transparent;
-      color: var(--bark);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .weather-coords {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      color: var(--bark-light);
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--paper-aged);
-    }
-
-    .weather-loading,
-    .weather-error {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      color: var(--bark-light);
-      text-align: center;
-      padding: 20px;
-    }
-
-    .weather-error {
-      color: var(--rust);
-    }
-
-    .weather-current {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    .weather-temp {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 42px;
-      font-weight: 700;
-      color: var(--forest);
-      line-height: 1;
-    }
-
-    .weather-desc {
-      font-size: 14px;
-      color: var(--bark);
-      text-transform: capitalize;
-      margin-top: 6px;
-    }
-
-    .weather-wind {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--bark-light);
-      margin-top: 8px;
-    }
-
-    .weather-forecast {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-top: 12px;
-      border-top: 1px solid var(--paper-aged);
-    }
-
-    .weather-day {
-      flex-shrink: 0;
-      text-align: center;
-      padding: 8px 12px;
-      background: rgba(240, 232, 214, 0.5);
-      border-radius: 8px;
-      min-width: 60px;
-    }
-
-    .weather-day-name {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      color: var(--bark-light);
-      text-transform: uppercase;
-    }
-
-    .weather-day-temp {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--forest);
-      margin-top: 4px;
-    }
-
-    .weather-day-icon {
-      font-size: 20px;
-      margin: 4px 0;
-    }
-
-    /* ── COMPASS PANEL ── */
-    .compass-panel {
-      position: absolute;
-      top: 70px;
-      right: 14px;
-      width: 260px;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 14px;
-      z-index: 15001;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      transform: translateX(120%);
-      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.18, 1);
-    }
-
-    .compass-panel.open {
-      transform: translateX(0);
-    }
-
-    .compass-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .compass-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--forest);
-    }
-
-    .compass-close {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid var(--paper-aged);
-      background: transparent;
-      color: var(--bark);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .compass-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .compass-ring {
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      border: 3px solid var(--line);
-      background: radial-gradient(circle, var(--paper-warm) 0%, var(--paper) 100%);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .compass-needle {
-      width: 4px;
-      height: 80px;
-      background: linear-gradient(to bottom, #d73a3a 50%, #2a5c8a 50%);
-      border-radius: 2px;
-      transform-origin: center;
-      transition: transform 0.3s ease-out;
-      position: absolute;
-    }
-
-    .compass-needle::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 12px;
-      height: 12px;
-      background: var(--forest);
-      border-radius: 50%;
-    }
-
-    .compass-n,
-    .compass-e,
-    .compass-s,
-    .compass-w {
-      position: absolute;
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--forest);
-    }
-
-    .compass-n {
-      top: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .compass-e {
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .compass-s {
-      bottom: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .compass-w {
-      left: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .compass-degrees {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 32px;
-      font-weight: 600;
-      color: var(--forest);
-    }
-
-    .compass-direction {
-      font-size: 14px;
-      color: var(--bark);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .compass-calibrate {
-      margin-top: 8px;
-    }
-
-    /* ── CARNET DE CHASSE ── */
-    .hunt-log-item {
-      display: flex;
-      gap: 10px;
-      padding: 10px;
-      background: rgba(240, 232, 214, 0.5);
-      border-radius: 8px;
-      margin-bottom: 8px;
-      border-left: 3px solid var(--rust);
-    }
-
-    .hunt-log-icon {
-      font-size: 24px;
-      flex-shrink: 0;
-    }
-
-    .hunt-log-info {
-      flex: 1;
-    }
-
-    .hunt-log-species {
-      font-weight: 600;
-      font-size: 13px;
-      color: var(--forest);
-    }
-
-    .hunt-log-details {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      color: var(--bark-light);
-      margin-top: 2px;
-    }
-
-    .hunt-log-date {
-      font-size: 9px;
-      color: var(--bark-light);
-      margin-top: 4px;
-    }
-
-    .hunt-log-delete {
-      width: 22px;
-      height: 22px;
-      border: none;
-      background: transparent;
-      color: var(--rust);
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* ── CHECKLIST ── */
-    .checklist-stats {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--bark-light);
-      margin-bottom: 10px;
-      text-align: right;
-    }
-
-    .checklist-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      transition: background 0.15s;
-    }
-
-    .checklist-item:hover {
-      background: rgba(240, 232, 214, 0.3);
-    }
-
-    .checklist-checkbox {
-      width: 18px;
-      height: 18px;
-      border: 2px solid var(--line);
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .checklist-checkbox.checked {
-      background: var(--moss);
-      border-color: var(--moss);
-      color: var(--paper);
-    }
-
-    .checklist-text {
-      flex: 1;
-      font-size: 12px;
-      color: var(--bark);
-    }
-
-    .checklist-text.checked {
-      text-decoration: line-through;
-      opacity: 0.5;
-    }
-
-    .checklist-delete {
-      width: 20px;
-      height: 20px;
-      border: none;
-      background: transparent;
-      color: var(--bark-light);
-      cursor: pointer;
-      font-size: 12px;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-
-    .checklist-item:hover .checklist-delete {
-      opacity: 1;
-    }
-
-    .checklist-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .checklist-actions .wp-footer-btn {
-      flex: 1;
-    }
-
-    /* ── SOLUNAR PANEL ── */
-    .solunar-panel {
-      position: absolute;
-      top: 70px;
-      right: 14px;
-      width: 300px;
-      max-width: calc(100vw - 28px);
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 14px;
-      z-index: 15000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      transform: translateX(120%);
-      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.18, 1);
-    }
-
-    .solunar-panel.open {
-      transform: translateX(0);
-    }
-
-    .solunar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .solunar-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--forest);
-    }
-
-    .solunar-close {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid var(--paper-aged);
-      background: transparent;
-      color: var(--bark);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .solunar-date {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--bark-light);
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--paper-aged);
-    }
-
-    .solunar-content {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .solunar-moon {
-      text-align: center;
-      padding: 12px;
-      background: rgba(240, 232, 214, 0.5);
-      border-radius: 12px;
-    }
-
-    .moon-phase {
-      font-size: 48px;
-      line-height: 1;
-    }
-
-    .moon-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--forest);
-      margin-top: 8px;
-    }
-
-    .moon-illumination {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      color: var(--bark-light);
-      margin-top: 4px;
-    }
-
-    .solunar-times {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .time-section {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 12px;
-      background: rgba(240, 232, 214, 0.3);
-      border-radius: 8px;
-    }
-
-    .time-section.majors {
-      background: rgba(184, 138, 62, 0.15);
-      border-left: 3px solid var(--gold);
-    }
-
-    .time-section.minors {
-      background: rgba(138, 122, 90, 0.15);
-      border-left: 3px solid var(--line);
-    }
-
-    .time-label {
-      font-size: 11px;
-      color: var(--bark);
-    }
-
-    .time-value {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--forest);
-    }
-
-    .solunar-rating {
-      text-align: center;
-      padding: 12px;
-      background: var(--forest);
-      border-radius: 12px;
-      color: var(--paper);
-    }
-
-    .rating-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      opacity: 0.8;
-    }
-
-    .rating-stars {
-      font-size: 20px;
-      margin: 6px 0;
-    }
-
-    .rating-text {
-      font-size: 12px;
-      font-weight: 600;
     }
 
     /* ── PANEL ── */
@@ -1620,16 +1058,6 @@
       color: var(--paper);
     }
 
-    .modal-btn .icon-btn:active {
-      background: var(--paper-aged);
-      color: var(--forest-deep);
-    }
-
-    .icon-btn.active {
-      background: var(--gold);
-      color: var(--forest-deep);
-    }
-
     /* ── WAYPOINT LIST IN PANEL ── */
     .wp-item {
       display: flex;
@@ -1693,10 +1121,6 @@
       color: var(--forest-mid);
     }
 
-    .wp-btn.share {
-      color: var(--zone-blue);
-    }
-
     .wp-btn.del {
       color: var(--rust);
     }
@@ -1753,7 +1177,7 @@
     /* ── COORDINATES ── */
     .compass-readout {
       position: absolute;
-      left: 14px;
+      right: 14px;
       top: calc(env(safe-area-inset-top) + 64px);
       z-index: 8;
       background: rgba(29, 40, 24, 0.85);
@@ -1980,164 +1404,6 @@
       }
     }
 
-    /* ── RESPONSIVE MOBILE ── */
-    @media (max-width: 600px) {
-
-      .brand-sub,
-      .net-badge {
-        display: none !important;
-      }
-
-      .header {
-        padding: 12px 16px;
-        background: linear-gradient(to bottom, rgba(29, 40, 24, 0.98) 0%, rgba(29, 40, 24, 0.95) 100%);
-      }
-
-      .header-actions {
-        display: none;
-      }
-
-      .icon-btn {
-        width: 44px;
-        height: 44px;
-      }
-
-      .icon-btn svg {
-        width: 22px;
-        height: 22px;
-      }
-
-      .brand-mark {
-        font-size: 22px;
-      }
-
-      /* ── BARRE D'OUTILS EN BAS ── */
-      .mobile-toolbar {
-        display: flex !important;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(to top, rgba(29, 40, 24, 0.98) 0%, rgba(29, 40, 24, 0.95) 100%);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-top: 1px solid rgba(212, 197, 160, 0.2);
-        padding: 8px 16px;
-        padding-bottom: calc(8px + env(safe-area-inset-bottom));
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        z-index: 10000;
-      }
-
-      .mobile-toolbar-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        padding: 6px 12px;
-        background: none;
-        border: none;
-        color: var(--paper-aged);
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 9px;
-        cursor: pointer;
-        transition: all 0.15s;
-        min-width: 52px;
-        pointer-events: auto;
-        -webkit-tap-highlight-color: rgba(212, 197, 160, 0.3);
-      }
-
-      .mobile-toolbar-btn:active {
-        color: var(--gold);
-        transform: scale(0.95);
-      }
-
-      .mobile-toolbar-btn svg {
-        width: 24px;
-        height: 24px;
-        stroke: currentColor;
-      }
-
-      /* Ajuster le panneau latéral pour ne pas être couvert */
-      .panel {
-        bottom: calc(100px + env(safe-area-inset-bottom));
-        max-height: calc(70vh - 100px);
-        left: env(safe-area-inset-left);
-        right: env(safe-area-inset-right);
-      }
-
-      .geo-fab {
-        bottom: calc(110px + env(safe-area-inset-bottom));
-        right: calc(14px + env(safe-area-inset-right));
-      }
-
-      .wp-fab {
-        bottom: calc(180px + env(safe-area-inset-bottom));
-        right: calc(14px + env(safe-area-inset-right));
-      }
-
-      .legend {
-        bottom: calc(110px + env(safe-area-inset-bottom));
-        left: calc(14px + env(safe-area-inset-left));
-      }
-
-      /* Repositionner les panneaux flottants sur mobile */
-      .weather-panel,
-      .solunar-panel,
-      .compass-panel {
-        top: 60px;
-        right: 10px;
-        left: 10px;
-        width: auto;
-        max-width: none;
-        z-index: 20000;
-      }
-
-      .panel {
-        z-index: 15000;
-      }
-
-      .search-overlay {
-        z-index: 25000;
-      }
-
-      /* Empêcher le panneau latéral de prendre toute la largeur */
-      .panel.open {
-        max-height: 60vh;
-      }
-
-      /* Agrandir les boutons pour tactile mobile */
-      .wp-footer-btn {
-        padding: 12px 8px;
-        font-size: 11px;
-        min-height: 44px;
-      }
-    }
-
-    /* Desktop: cacher la barre mobile */
-    @media (min-width: 601px) {
-      .mobile-toolbar {
-        display: none !important;
-      }
-    }
-
-    @media (max-width: 360px) {
-      .icon-btn {
-        width: 32px;
-        height: 32px;
-      }
-
-      .icon-btn svg {
-        width: 16px;
-        height: 16px;
-      }
-
-      .header-actions {
-        gap: 3px;
-      }
-    }
-
     /* ── ZONE 300M ── */
     .zone300-note {
       font-family: 'IBM Plex Mono', monospace;
@@ -2249,119 +1515,17 @@
     <div class="search-results" id="searchResults"></div>
   </div>
 
-  <!-- WEATHER PANEL -->
-  <div class="weather-panel" id="weatherPanel">
-    <div class="weather-header">
-      <div class="weather-title">🌤️ Météo locale</div>
-      <button class="weather-close" id="weatherClose">×</button>
-    </div>
-    <div class="weather-coords" id="weatherCoords">—</div>
-    <div class="weather-loading" id="weatherLoading">Chargement…</div>
-    <div class="weather-content hidden" id="weatherContent">
-      <div class="weather-current">
-        <div class="weather-temp" id="weatherTemp">—°C</div>
-        <div class="weather-desc" id="weatherDesc">—</div>
-        <div class="weather-wind" id="weatherWind">Vent: — km/h</div>
-      </div>
-      <div class="weather-forecast" id="weatherForecast"></div>
-    </div>
-    <div class="weather-error hidden" id="weatherError">Impossible de charger la météo</div>
-  </div>
-
-  <!-- SOLUNAR PANEL -->
-  <div class="solunar-panel" id="solunarPanel">
-    <div class="solunar-header">
-      <div class="solunar-title">🌙 Calendrier solunaire</div>
-      <button class="solunar-close" id="solunarClose">×</button>
-    </div>
-    <div class="solunar-date" id="solunarDate">—</div>
-    <div class="solunar-content">
-      <div class="solunar-moon">
-        <div class="moon-phase" id="moonPhase">🌑</div>
-        <div class="moon-name" id="moonName">Nouvelle lune</div>
-        <div class="moon-illumination" id="moonIllumination">0% illuminée</div>
-      </div>
-      <div class="solunar-times">
-        <div class="time-section">
-          <div class="time-label">🌅 Levé du soleil</div>
-          <div class="time-value" id="sunriseTime">—:—</div>
-        </div>
-        <div class="time-section">
-          <div class="time-label">🌇 Couché du soleil</div>
-          <div class="time-value" id="sunsetTime">—:—</div>
-        </div>
-        <div class="time-section majors">
-          <div class="time-label">⭐ Heures majeures</div>
-          <div class="time-value" id="majorTimes">—:— — —:—</div>
-        </div>
-        <div class="time-section minors">
-          <div class="time-label">◆ Heures mineures</div>
-          <div class="time-value" id="minorTimes">—:— — —:—</div>
-        </div>
-      </div>
-      <div class="solunar-rating" id="solunarRating">
-        <div class="rating-label">Indice de chasse</div>
-        <div class="rating-stars" id="ratingStars">⭐⭐⭐☆☆</div>
-        <div class="rating-text" id="ratingText">Moyen</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- COMPASS PANEL -->
-  <div class="compass-panel" id="compassPanel">
-    <div class="compass-header">
-      <div class="compass-title">🧭 Boussole</div>
-      <button class="compass-close" id="compassClose">×</button>
-    </div>
-    <div class="compass-container">
-      <div class="compass-ring" id="compassRing">
-        <div class="compass-needle" id="compassNeedle"></div>
-        <div class="compass-n">N</div>
-        <div class="compass-e">E</div>
-        <div class="compass-s">S</div>
-        <div class="compass-w">O</div>
-      </div>
-      <div class="compass-degrees" id="compassDegrees">0°</div>
-      <div class="compass-direction" id="compassDirection">Nord</div>
-      <div class="compass-calibrate" id="compassCalibrate">
-        <button class="modal-btn secondary" id="calibrateBtn">Calibrer</button>
-      </div>
-    </div>
-  </div>
-
   <!-- HEADER -->
   <header class="header">
     <div class="brand">
       <div class="brand-mark">Qub Hunter</div>
-      <div class="brand-sub">Phase 07 — Outils de chasse complets</div>
+      <div class="brand-sub">Phase 05 — Outils terrain</div>
       <div class="net-badge" id="netBadge">
         <div class="net-dot"></div>
         <span class="net-label" id="netLabel">En ligne</span>
       </div>
     </div>
     <div class="header-actions">
-      <!-- Solunaire -->
-      <button class="icon-btn" id="solunarBtn" aria-label="Calendrier solunaire">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
-      <!-- Météo -->
-      <button class="icon-btn" id="weatherBtn" aria-label="Météo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-      </button>
       <!-- Partager position -->
       <button class="icon-btn" id="shareBtn" aria-label="Partager la position">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -2373,31 +1537,11 @@
           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
         </svg>
       </button>
-      <!-- Mesure -->
-      <button class="icon-btn" id="measureBtn" aria-label="Mesurer distance">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="6" cy="6" r="3"></circle>
-          <circle cx="18" cy="18" r="3"></circle>
-          <line x1="8.12" y1="8.12" x2="15.88" y2="15.88"></line>
-          <line x1="3" y1="12" x2="7" y2="12"></line>
-          <line x1="17" y1="12" x2="21" y2="12"></line>
-        </svg>
-      </button>
-      <!-- Boussole -->
-      <button class="icon-btn" id="compassBtn" aria-label="Boussole">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-        </svg>
-      </button>
       <!-- Recherche -->
       <button class="icon-btn" id="searchToggle" aria-label="Rechercher">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round">
           <circle cx="11" cy="11" r="7"></circle>
-          <path d="M21 21l-4.35-4.35"></path>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
       </button>
@@ -2580,29 +1724,6 @@
         </div>
       </div>
 
-      <!-- CARNET DE CHASSE -->
-      <div class="layer-section">
-        <div class="section-label">🏆 Carnet de chasse</div>
-        <div id="huntLogList">
-          <div class="wp-empty">Aucune prise enregistrée.</div>
-        </div>
-        <button class="wp-footer-btn add" id="addHuntLogBtn" style="width:100%;margin-top:8px;">+ Ajouter une
-          prise</button>
-      </div>
-
-      <!-- CHECKLIST ÉQUIPEMENT -->
-      <div class="layer-section">
-        <div class="section-label">🎒 Checklist équipement</div>
-        <div class="checklist-stats" id="checklistStats">0/0 items</div>
-        <div id="checklistItems">
-          <!-- Généré dynamiquement -->
-        </div>
-        <div class="checklist-actions">
-          <button class="wp-footer-btn" id="resetChecklistBtn">Réinitialiser</button>
-          <button class="wp-footer-btn" id="addChecklistItemBtn">+ Ajouter</button>
-        </div>
-      </div>
-
       <div class="layer-section">
         <div class="section-label">Fond de carte</div>
         <div class="layer-row">
@@ -2622,7 +1743,8 @@
             <div class="layer-name">Zones 1–29</div>
             <div class="layer-desc" id="desc-zones">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="zones"><span class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="zones" checked><span
+              class="toggle-slider"></span></label>
         </div>
         <div
           style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:4px 0 0">
@@ -2639,7 +1761,8 @@
             <div class="layer-name">ZEC</div>
             <div class="layer-desc" id="desc-zec">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="zec"><span class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="zec" checked><span
+              class="toggle-slider"></span></label>
         </div>
         <div class="layer-row">
           <div class="layer-swatch" style="background:#a04a28"></div>
@@ -2647,7 +1770,7 @@
             <div class="layer-name">Pourvoiries (DE)</div>
             <div class="layer-desc" id="desc-pourvoirie">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="pourvoirie"><span
+          <label class="toggle"><input type="checkbox" data-layer="pourvoirie" checked><span
               class="toggle-slider"></span></label>
         </div>
         <div class="layer-row">
@@ -2656,7 +1779,8 @@
             <div class="layer-name">Réserves fauniques</div>
             <div class="layer-desc" id="desc-reserve">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="reserve"><span class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="reserve" checked><span
+              class="toggle-slider"></span></label>
         </div>
         <div class="layer-row">
           <div class="layer-swatch" style="background:#b88a3e"></div>
@@ -2664,7 +1788,8 @@
             <div class="layer-name">Parcs nationaux</div>
             <div class="layer-desc" id="desc-parc">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="parc"><span class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="parc" checked><span
+              class="toggle-slider"></span></label>
         </div>
       </div>
 
@@ -2676,7 +1801,8 @@
             <div class="layer-name">Lots cadastraux</div>
             <div class="layer-desc" id="desc-cadastre">disponible zoom ≥ 12</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="cadastre"><span class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="cadastre" checked><span
+              class="toggle-slider"></span></label>
         </div>
         <div
           style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
@@ -2743,7 +1869,7 @@
             <div class="layer-name">Nations du Québec</div>
             <div class="layer-desc" id="desc-autochtone">9 nations · territoires indicatifs</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="autochtone"><span
+          <label class="toggle"><input type="checkbox" data-layer="autochtone" checked><span
               class="toggle-slider"></span></label>
         </div>
         <div
@@ -3258,7 +2384,6 @@
             '<div class="wp-coord">' + wp.lat.toFixed(4) + ', ' + wp.lng.toFixed(4) + '</div>' +
             '</div>' +
             '<div class="wp-actions">' +
-            '<button class="wp-btn share" data-id="' + wp.id + '" title="Partager">🔗</button>' +
             '<button class="wp-btn goto" data-id="' + wp.id + '" title="Centrer">→</button>' +
             '<button class="wp-btn del"  data-id="' + wp.id + '" title="Supprimer">×</button>' +
             '</div>' +
@@ -3273,40 +2398,9 @@
             if (wp) { map.flyTo({ center: [wp.lng, wp.lat], zoom: 14, duration: 800 }); setPanelOpen(false); }
           });
         });
-        list.querySelectorAll('.wp-btn.share').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var id = btn.getAttribute('data-id');
-            var wp = findWp(id);
-            if (wp) { shareWaypoint(wp); }
-          });
-        });
         list.querySelectorAll('.wp-btn.del').forEach(function (btn) {
           btn.addEventListener('click', function () { deleteWaypoint(btn.getAttribute('data-id')); });
         });
-      }
-
-      // ── PARTAGE DE REPÈRE ────────────────────────────────────────────────────
-      function shareWaypoint(wp) {
-        var cat = CATEGORIES[wp.cat] || { nom: 'Repère', emoji: '📍' };
-        var shareData = {
-          title: wp.name || cat.nom,
-          text: cat.emoji + ' ' + (wp.name || cat.nom) + (wp.note ? ' - ' + wp.note : '') + ' \n📍 ' + wp.lat.toFixed(5) + ', ' + wp.lng.toFixed(5),
-          url: window.location.origin + window.location.pathname + '?lat=' + wp.lat.toFixed(5) + '&lng=' + wp.lng.toFixed(5) + '&z=16'
-        };
-
-        // Utiliser Web Share API si disponible (mobile)
-        if (navigator.share) {
-          navigator.share(shareData).catch(function () { });
-        } else {
-          // Fallback: copier le lien dans le presse-papier
-          var link = shareData.url;
-          navigator.clipboard.writeText(link).then(function () {
-            showToast('Lien copié dans le presse-papier');
-          }).catch(function () {
-            // Si clipboard échoue, afficher le lien
-            prompt('Copiez ce lien:', link);
-          });
-        }
       }
 
       function findWp(id) {
@@ -3525,587 +2619,16 @@
           .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
       }
 
-      // ── MÉTÉO ────────────────────────────────────────────────────────────────
-      var weatherCodes = {
-        0: { icon: '☀️', desc: 'Ensoleillé' },
-        1: { icon: '🌤️', desc: 'Partiellement nuageux' },
-        2: { icon: '⛅', desc: 'Nuageux' },
-        3: { icon: '☁️', desc: 'Couvert' },
-        45: { icon: '🌫️', desc: 'Brouillard' },
-        48: { icon: '🌫️', desc: 'Brouillard givrant' },
-        51: { icon: '🌦️', desc: 'Bruine légère' },
-        53: { icon: '🌦️', desc: 'Bruine modérée' },
-        55: { icon: '🌧️', desc: 'Bruine dense' },
-        61: { icon: '🌧️', desc: 'Pluie légère' },
-        63: { icon: '🌧️', desc: 'Pluie modérée' },
-        65: { icon: '🌧️', desc: 'Pluie forte' },
-        71: { icon: '🌨️', desc: 'Neige légère' },
-        73: { icon: '🌨️', desc: 'Neige modérée' },
-        75: { icon: '🌨️', desc: 'Neige forte' },
-        95: { icon: '⛈️', desc: 'Orage' },
-        96: { icon: '⛈️', desc: 'Orage avec grêle' },
-        99: { icon: '⛈️', desc: 'Orage avec grêle' }
-      };
-
-      function getWeatherIcon(code) {
-        return (weatherCodes[code] || { icon: '🌡️', desc: 'Inconnu' });
-      }
-
-      function loadWeather(lat, lng) {
-        var panel = $('weatherPanel');
-        var loading = $('weatherLoading');
-        var content = $('weatherContent');
-        var error = $('weatherError');
-        var coords = $('weatherCoords');
-
-        loading.classList.remove('hidden');
-        content.classList.add('hidden');
-        error.classList.add('hidden');
-        coords.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
-
-        // Reverse geocoding pour trouver le nom du lieu (Nominatim - OpenStreetMap)
-        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=10&accept-language=fr')
-          .then(function (r) { return r.json(); })
-          .then(function (geoData) {
-            var placeName = 'Localisation inconnue';
-            if (geoData && geoData.address) {
-              var a = geoData.address;
-              // Priorité: village > town > city > municipality > county
-              placeName = a.village || a.town || a.city || a.municipality || a.county || 'Région de ' + (a.state || 'Québec');
-            }
-            coords.innerHTML = '<strong>' + placeName + '</strong><br/><small>' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</small>';
-          })
-          .catch(function () {
-            coords.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
-          });
-
-        // API Open-Meteo (gratuit, sans clé)
-        var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng + '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=America/Toronto&forecast_days=4';
-
-        fetch(url)
-          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-          .then(function (data) {
-            loading.classList.add('hidden');
-            content.classList.remove('hidden');
-
-            // Current weather
-            var current = data.current;
-            var w = getWeatherIcon(current.weather_code);
-            $('weatherTemp').textContent = Math.round(current.temperature_2m) + '°C';
-            $('weatherDesc').textContent = w.icon + ' ' + w.desc;
-            $('weatherWind').textContent = 'Vent: ' + Math.round(current.wind_speed_10m) + ' km/h · Humidité: ' + current.relative_humidity_2m + '%';
-
-            // Forecast
-            var forecast = $('weatherForecast');
-            forecast.innerHTML = '';
-            var days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-
-            for (var i = 0; i < 4; i++) {
-              var date = new Date(data.daily.time[i]);
-              var dayName = i === 0 ? 'Auj.' : days[date.getDay()];
-              var wDay = getWeatherIcon(data.daily.weather_code[i]);
-              var min = Math.round(data.daily.temperature_2m_min[i]);
-              var max = Math.round(data.daily.temperature_2m_max[i]);
-
-              var div = document.createElement('div');
-              div.className = 'weather-day';
-              div.innerHTML = '<div class="weather-day-name">' + dayName + '</div><div class="weather-day-icon">' + wDay.icon + '</div><div class="weather-day-temp">' + max + '°</div>';
-              forecast.appendChild(div);
-            }
-          })
-          .catch(function (e) {
-            loading.classList.add('hidden');
-            error.classList.remove('hidden');
-            console.error('Weather error:', e);
-          });
-      }
-
-      $('weatherBtn').addEventListener('click', function () {
-        var panel = $('weatherPanel');
-        var isOpen = panel.classList.contains('open');
-
-        if (isOpen) {
-          panel.classList.remove('open');
-        } else {
-          panel.classList.add('open');
-          // Charger la météo pour le centre de la carte
-          var center = map.getCenter();
-          loadWeather(center.lat, center.lng);
-        }
-      });
-
-      $('weatherClose').addEventListener('click', function () {
-        $('weatherPanel').classList.remove('open');
-      });
-
-      // ── SOLUNAIRE ────────────────────────────────────────────────────────────
-      function getMoonPhase(date) {
-        var year = date.getFullYear();
-        var month = date.getMonth() + 1;
-        var day = date.getDate();
-
-        var c = 0, e = 0, jd = 0, b = 0;
-        if (month < 3) { year--; month += 12; }
-        ++month; c = 365.25 * year; e = 30.6 * month; jd = c + e + day - 694039.09;
-        jd /= 29.5305882; b = parseInt(jd); jd -= b; b = Math.round(jd * 8);
-        if (b >= 8) b = 0;
-
-        var phases = [
-          { name: 'Nouvelle lune', icon: '🌑', illum: 0 },
-          { name: 'Premier croissant', icon: '🌒', illum: 25 },
-          { name: 'Premier quartier', icon: '🌓', illum: 50 },
-          { name: 'Lune gibbeuse croissante', icon: '🌔', illum: 75 },
-          { name: 'Pleine lune', icon: '🌕', illum: 100 },
-          { name: 'Lune gibbeuse décroissante', icon: '🌖', illum: 75 },
-          { name: 'Dernier quartier', icon: '🌗', illum: 50 },
-          { name: 'Dernier croissant', icon: '🌘', illum: 25 }
-        ];
-        return phases[b];
-      }
-
-      function getSunTimes(lat, lng, date, callback) {
-        // Utiliser l'API sunrise-sunset.org pour des heures précises
-        var url = 'https://api.sunrise-sunset.org/json?lat=' + lat + '&lng=' + lng + '&formatted=0';
-
-        fetch(url)
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            if (data.status === 'OK') {
-              var sunrise = new Date(data.results.sunrise);
-              var sunset = new Date(data.results.sunset);
-              callback({ sunrise: sunrise, sunset: sunset });
-            } else {
-              // Fallback sur des heures approximatives pour le Québec
-              var sunrise = new Date(date);
-              sunrise.setHours(6, 0, 0);
-              var sunset = new Date(date);
-              sunset.setHours(20, 0, 0);
-              callback({ sunrise: sunrise, sunset: sunset });
-            }
-          })
-          .catch(function () {
-            // Fallback
-            var sunrise = new Date(date);
-            sunrise.setHours(6, 0, 0);
-            var sunset = new Date(date);
-            sunset.setHours(20, 0, 0);
-            callback({ sunrise: sunrise, sunset: sunset });
-          });
-      }
-
-      function formatTime(date) {
-        return ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
-      }
-
-      function loadSolunar(lat, lng) {
-        var now = new Date();
-        var moon = getMoonPhase(now);
-
-        // Date
-        var months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-        $('solunarDate').textContent = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
-
-        // Lune
-        $('moonPhase').textContent = moon.icon;
-        $('moonName').textContent = moon.name;
-        $('moonIllumination').textContent = moon.illum + '% illuminée';
-
-        // Récupérer les heures de soleil via API
-        getSunTimes(lat, lng, now, function (sun) {
-          // Soleil
-          $('sunriseTime').textContent = formatTime(sun.sunrise);
-          $('sunsetTime').textContent = formatTime(sun.sunset);
-
-          // Heures majeures: +2h et -2h autour du lever/coucher du soleil
-          var major1Start = new Date(sun.sunrise.getTime() - 2 * 3600000);
-          var major1End = new Date(sun.sunrise.getTime() + 2 * 3600000);
-          var major2Start = new Date(sun.sunset.getTime() - 2 * 3600000);
-          var major2End = new Date(sun.sunset.getTime() + 2 * 3600000);
-
-          // Heures mineures: milieu de journée
-          var sunriseH = sun.sunrise.getHours() + sun.sunrise.getMinutes() / 60;
-          var sunsetH = sun.sunset.getHours() + sun.sunset.getMinutes() / 60;
-          var noon = (sunriseH + sunsetH) / 2;
-          var minorStart = new Date(now.getTime());
-          minorStart.setHours(Math.floor(noon) - 1, 30);
-          var minorEnd = new Date(now.getTime());
-          minorEnd.setHours(Math.floor(noon) + 1, 30);
-
-          // Heures majeures et mineures
-          $('majorTimes').textContent = formatTime(major1Start) + ' – ' + formatTime(major1End) + '  |  ' + formatTime(major2Start) + ' – ' + formatTime(major2End);
-          $('minorTimes').textContent = formatTime(minorStart) + ' – ' + formatTime(minorEnd);
-        });
-
-        // Indice de chasse (0-5 étoiles)
-        var rating = 2; // Base
-        if (moon.illum > 80 || moon.illum < 20) rating += 1; // Nouvelle ou pleine lune
-        if (moon.name === 'Pleine lune' || moon.name === 'Nouvelle lune') rating += 1;
-        if (now.getMonth() >= 8 && now.getMonth() <= 10) rating += 0.5; // Rut automne
-        rating = Math.min(5, Math.max(1, Math.round(rating)));
-
-        // Indice de chasse
-        var stars = '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
-        $('ratingStars').textContent = stars;
-        var ratings = ['Mauvais', 'Faible', 'Moyen', 'Bon', 'Très bon', 'Excellent'];
-        $('ratingText').textContent = ratings[rating];
-      }
-
-      $('solunarBtn').addEventListener('click', function () {
-        var panel = $('solunarPanel');
-        var isOpen = panel.classList.contains('open');
-
-        if (isOpen) {
-          panel.classList.remove('open');
-        } else {
-          panel.classList.add('open');
-          var center = map.getCenter();
-          loadSolunar(center.lat, center.lng);
-        }
-      });
-
-      $('solunarClose').addEventListener('click', function () {
-        $('solunarPanel').classList.remove('open');
-      });
-
-      // ── BOUSSOLE ───────────────────────────────────────────────────────────────
-      var compassOffset = 0;
-      var compassActive = false;
-
-      function updateCompassDisplay(heading) {
-        var adjusted = (heading + compassOffset) % 360;
-        if (adjusted < 0) adjusted += 360;
-
-        $('compassNeedle').style.transform = 'rotate(' + adjusted + 'deg)';
-        $('compassDegrees').textContent = Math.round(adjusted) + '°';
-
-        var directions = ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ouest', 'Ouest', 'Nord-Ouest'];
-        var index = Math.round(adjusted / 45) % 8;
-        $('compassDirection').textContent = directions[index];
-      }
-
-      function startCompass() {
-        if (!window.DeviceOrientationEvent) {
-          showToast('Boussole non disponible sur cet appareil');
-          return;
-        }
-
-        $('compassPanel').classList.add('open');
-        compassActive = true;
-
-        // Essayer d'obtenir la permission sur iOS 13+
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-          DeviceOrientationEvent.requestPermission().then(function (permissionState) {
-            if (permissionState === 'granted') {
-              window.addEventListener('deviceorientation', handleOrientation);
-            } else {
-              showToast('Permission refusée pour la boussole');
-            }
-          }).catch(function () {
-            // Fallback sans permission
-            window.addEventListener('deviceorientation', handleOrientation);
-          });
-        } else {
-          window.addEventListener('deviceorientation', handleOrientation);
-        }
-      }
-
-      function handleOrientation(e) {
-        if (!compassActive) return;
-        var heading = e.webkitCompassHeading || e.alpha || 0;
-        updateCompassDisplay(heading);
-      }
-
-      $('compassBtn').addEventListener('click', startCompass);
-      $('compassClose').addEventListener('click', function () {
-        $('compassPanel').classList.remove('open');
-        compassActive = false;
-        window.removeEventListener('deviceorientation', handleOrientation);
-      });
-      $('calibrateBtn').addEventListener('click', function () {
-        compassOffset = -parseFloat($('compassDegrees').textContent);
-        showToast('Boussole calibrée');
-      });
-
-      // ── CARNET DE CHASSE ───────────────────────────────────────────────────
-      var HUNT_LOG_STORAGE = 'qub-hunter-hunt-log-v1';
-      var huntLog = [];
-
-      function loadHuntLog() {
-        try {
-          var raw = localStorage.getItem(HUNT_LOG_STORAGE);
-          if (raw) huntLog = JSON.parse(raw);
-        } catch (e) { huntLog = []; }
-      }
-
-      function saveHuntLog() {
-        try { localStorage.setItem(HUNT_LOG_STORAGE, JSON.stringify(huntLog)); } catch (e) { }
-      }
-
-      function renderHuntLog() {
-        var list = $('huntLogList');
-        if (!huntLog.length) {
-          list.innerHTML = '<div class="wp-empty">Aucune prise enregistrée.</div>';
-          return;
-        }
-
-        var icons = {
-          'Orignal': '🫎', 'Cerf': '🦌', 'Ours': '🐻', 'Dindon': '🦃',
-          'Sanglier': '🐗', 'Lièvre': '🐇', 'Canard': '🦆', 'Oie': '🪶',
-          'Perdrix': '🐦', 'Grouse': '🐔', 'Autre': '🏹'
-        };
-
-        var html = '';
-        for (var i = 0; i < huntLog.length; i++) {
-          var entry = huntLog[i];
-          var icon = icons[entry.species] || '🏹';
-          html += '<div class="hunt-log-item">' +
-            '<div class="hunt-log-icon">' + icon + '</div>' +
-            '<div class="hunt-log-info">' +
-            '<div class="hunt-log-species">' + escXml(entry.species) + (entry.weight ? ' — ' + entry.weight + ' kg' : '') + '</div>' +
-            '<div class="hunt-log-details">' + (entry.sex || '') + ' ' + (entry.antlers || '') + '</div>' +
-            '<div class="hunt-log-date">' + new Date(entry.date).toLocaleDateString('fr-CA') + '</div>' +
-            '</div>' +
-            '<button class="hunt-log-delete" data-idx="' + i + '">×</button>' +
-            '</div>';
-        }
-        list.innerHTML = html;
-
-        list.querySelectorAll('.hunt-log-delete').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var idx = parseInt(btn.getAttribute('data-idx'));
-            huntLog.splice(idx, 1);
-            saveHuntLog();
-            renderHuntLog();
-            showToast('Entrée supprimée');
-          });
-        });
-      }
-
-      function addHuntEntry() {
-        var species = prompt('Espèce (Orignal, Cerf, Ours, Dindon, Sanglier, etc.):');
-        if (!species) return;
-
-        var weight = prompt('Poids (kg) - optionnel:');
-        var sex = prompt('Sexe (Mâle/Femelle) - optionnel:');
-        var antlers = prompt('Détails (panache, bois, etc.) - optionnel:');
-
-        huntLog.unshift({
-          species: species,
-          weight: weight || '',
-          sex: sex || '',
-          antlers: antlers || '',
-          date: new Date().toISOString(),
-          location: map ? map.getCenter() : null
-        });
-
-        saveHuntLog();
-        renderHuntLog();
-        showToast('Prise enregistrée!');
-      }
-
-      $('addHuntLogBtn').addEventListener('click', addHuntEntry);
-
-      // ── CHECKLIST ÉQUIPEMENT ─────────────────────────────────────────────────
-      var CHECKLIST_STORAGE = 'qub-hunter-checklist-v1';
-      var defaultItems = [
-        'Permis de chasse', 'Arme + munitions', 'Couteau', 'GPS / Téléphone',
-        'Boussole', 'Lampe frontale', 'Sifflet d\'urgence', 'Premiers soins',
-        'Eau', 'Collations', 'Vêtements de pluie', 'Botte', 'Appelants'
-      ];
-      var checklist = [];
-
-      function loadChecklist() {
-        try {
-          var raw = localStorage.getItem(CHECKLIST_STORAGE);
-          if (raw) {
-            checklist = JSON.parse(raw);
-          } else {
-            // Initialiser avec les items par défaut
-            checklist = defaultItems.map(function (text) {
-              return { text: text, checked: false };
-            });
-            saveChecklist();
-          }
-        } catch (e) {
-          checklist = defaultItems.map(function (text) {
-            return { text: text, checked: false };
-          });
-        }
-      }
-
-      function saveChecklist() {
-        try { localStorage.setItem(CHECKLIST_STORAGE, JSON.stringify(checklist)); } catch (e) { }
-      }
-
-      function renderChecklist() {
-        var container = $('checklistItems');
-        var checkedCount = checklist.filter(function (i) { return i.checked; }).length;
-        $('checklistStats').textContent = checkedCount + '/' + checklist.length + ' items';
-
-        if (!checklist.length) {
-          container.innerHTML = '<div class="wp-empty">Liste vide</div>';
-          return;
-        }
-
-        var html = '';
-        for (var i = 0; i < checklist.length; i++) {
-          var item = checklist[i];
-          html += '<div class="checklist-item">' +
-            '<div class="checklist-checkbox ' + (item.checked ? 'checked' : '') + '" data-idx="' + i + '">' + (item.checked ? '✓' : '') + '</div>' +
-            '<div class="checklist-text ' + (item.checked ? 'checked' : '') + '">' + escXml(item.text) + '</div>' +
-            '<button class="checklist-delete" data-idx="' + i + '">×</button>' +
-            '</div>';
-        }
-        container.innerHTML = html;
-
-        container.querySelectorAll('.checklist-checkbox').forEach(function (box) {
-          box.addEventListener('click', function () {
-            var idx = parseInt(box.getAttribute('data-idx'));
-            checklist[idx].checked = !checklist[idx].checked;
-            saveChecklist();
-            renderChecklist();
-          });
-        });
-
-        container.querySelectorAll('.checklist-delete').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var idx = parseInt(btn.getAttribute('data-idx'));
-            checklist.splice(idx, 1);
-            saveChecklist();
-            renderChecklist();
-          });
-        });
-      }
-
-      $('addChecklistItemBtn').addEventListener('click', function () {
-        var text = prompt('Nouvel item:');
-        if (text) {
-          checklist.push({ text: text, checked: false });
-          saveChecklist();
-          renderChecklist();
-        }
-      });
-
-      $('resetChecklistBtn').addEventListener('click', function () {
-        if (confirm('Réinitialiser la checklist?')) {
-          checklist = defaultItems.map(function (text) {
-            return { text: text, checked: false };
-          });
-          saveChecklist();
-          renderChecklist();
-          showToast('Checklist réinitialisée');
-        }
-      });
-
-      // ── OUTIL DE MESURE ──────────────────────────────────────────────────────
-      var isMeasuring = false;
-      var measurePoints = [];
-      var measureMarkers = [];
-      var measureLine = null;
-
-      function haversineDistance(lat1, lon1, lat2, lon2) {
-        var R = 6371; // Rayon de la Terre en km
-        var dLat = (lat2 - lat1) * Math.PI / 180;
-        var dLon = (lon2 - lon1) * Math.PI / 180;
-        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-          Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; // Distance en km
-      }
-
-      function startMeasure() {
-        if (isMeasuring) {
-          // Arrêter la mesure
-          isMeasuring = false;
-          $('measureBtn').classList.remove('active');
-          showToast('Mesure terminée: ' + measurePoints.length + ' points');
-          return;
-        }
-
-        // Démarrer une nouvelle mesure
-        isMeasuring = true;
-        $('measureBtn').classList.add('active');
-
-        // Effacer les mesures précédentes
-        measurePoints = [];
-        measureMarkers.forEach(function (m) { m.remove(); });
-        measureMarkers = [];
-        if (measureLine) {
-          map.removeLayer('measure-line');
-          map.removeSource('measure-source');
-          measureLine = null;
-        }
-
-        showToast('Cliquez sur la carte pour mesurer (cliquez sur 📏 pour terminer)');
-      }
-
-      function addMeasurePoint(lngLat) {
-        measurePoints.push([lngLat.lng, lngLat.lat]);
-
-        // Ajouter un marqueur
-        var marker = new maplibregl.Marker({
-          color: measurePoints.length === 1 ? '#2a5c8a' : '#b88a3e',
-          scale: 0.8
-        }).setLngLat(lngLat).addTo(map);
-        measureMarkers.push(marker);
-
-        // Mettre à jour la ligne
-        if (measurePoints.length > 1) {
-          if (measureLine) {
-            map.getSource('measure-source').setData({
-              type: 'Feature',
-              geometry: { type: 'LineString', coordinates: measurePoints }
-            });
-          } else {
-            map.addSource('measure-source', {
-              type: 'geojson',
-              data: {
-                type: 'Feature',
-                geometry: { type: 'LineString', coordinates: measurePoints }
-              }
-            });
-            map.addLayer({
-              id: 'measure-line',
-              type: 'line',
-              source: 'measure-source',
-              paint: {
-                'line-color': '#b88a3e',
-                'line-width': 3,
-                'line-dasharray': [2, 2]
-              }
-            });
-            measureLine = true;
-          }
-
-          // Calculer la distance totale
-          var totalDist = 0;
-          for (var i = 1; i < measurePoints.length; i++) {
-            totalDist += haversineDistance(
-              measurePoints[i - 1][1], measurePoints[i - 1][0],
-              measurePoints[i][1], measurePoints[i][0]
-            );
-          }
-
-          var distText = totalDist < 1 ? (totalDist * 1000).toFixed(0) + ' m' : totalDist.toFixed(2) + ' km';
-          showToast('Distance: ' + distText + ' (' + measurePoints.length + ' points)');
-        }
-      }
-
-      $('measureBtn').addEventListener('click', startMeasure);
-
       // ── TUILES ──────────────────────────────────────────────────────────────
       var TILE_SOURCES = [
         { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
         { name: 'OSM', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], attrib: '© OpenStreetMap' },
-        { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' },
-        { name: 'Topographique', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'], attrib: '© OpenTopoMap © OSM', maxZoom: 17 }
+        { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' }
       ];
       var currentSourceIdx = 0;
 
       function makeStyle(src) {
-        var maxzoom = src.maxZoom || 19;
-        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: 256, attribution: src.attrib, maxzoom: maxzoom } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
+        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: 256, attribution: src.attrib, maxzoom: 19 } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
       }
       function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
       setSourceLabel(TILE_SOURCES[0].name);
@@ -4194,8 +2717,8 @@
         var sourceId = 'src-' + key, fillId = 'fill-' + key, lineId = 'line-' + key;
         if (map.getSource(sourceId)) { map.getSource(sourceId).setData(geojson); return; }
         map.addSource(sourceId, { type: 'geojson', data: geojson });
-        map.addLayer({ id: fillId, type: 'fill', source: sourceId, layout: { 'visibility': 'none' }, paint: { 'fill-color': color, 'fill-opacity': fillOpacity } });
-        map.addLayer({ id: lineId, type: 'line', source: sourceId, layout: { 'visibility': 'none' }, paint: { 'line-color': color, 'line-width': key === 'zones' ? 1.5 : 1.8, 'line-opacity': 0.9 } });
+        map.addLayer({ id: fillId, type: 'fill', source: sourceId, paint: { 'fill-color': color, 'fill-opacity': fillOpacity } });
+        map.addLayer({ id: lineId, type: 'line', source: sourceId, paint: { 'line-color': color, 'line-width': key === 'zones' ? 1.5 : 1.8, 'line-opacity': 0.9 } });
         map.on('click', fillId, function (e) {
           var f = e.features[0];
           var nom = nameFromProps(f.properties);
@@ -4306,8 +2829,8 @@
           .then(function (r) {
             if (!r.ok) throw new Error('absent');
             map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
-            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, layout: { 'visibility': 'none' }, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'visibility': 'none', 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
             map.on('click', 'line-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
@@ -4482,8 +3005,8 @@
           .then(function (r) {
             if (!r.ok) throw new Error('absent');
             map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
-            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, layout: { 'visibility': 'none' }, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'visibility': 'none', 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
             map.on('click', 'line-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
@@ -4537,12 +3060,10 @@
         map.addSource('src-autochtone', { type: 'geojson', data: TERRITORIES_AUTOCHTONES });
         map.addLayer({
           id: 'fill-autochtone', type: 'fill', source: 'src-autochtone',
-          layout: { 'visibility': 'none' },
           paint: { 'fill-color': '#6b1a14', 'fill-opacity': 0.07 }
         });
         map.addLayer({
           id: 'line-autochtone', type: 'line', source: 'src-autochtone',
-          layout: { 'visibility': 'none' },
           paint: { 'line-color': '#6b1a14', 'line-width': 1.5, 'line-opacity': 0.55, 'line-dasharray': [5, 3] }
         });
         map.on('click', 'fill-autochtone', function (e) {
@@ -4643,24 +3164,9 @@
         loadWaypointsFromStorage();
         for (var i = 0; i < waypoints.length; i++) { addWaypointToMap(waypoints[i]); }
         renderWaypointList();
-
-        // Charger le carnet de chasse
-        loadHuntLog();
-        renderHuntLog();
-
-        // Charger la checklist
-        loadChecklist();
-        renderChecklist();
       });
 
       map.on('styledata', function () { if (!map.getSource('src-zec')) loadAllLayers(); });
-
-      // Clic sur la carte pour outil de mesure
-      map.on('click', function (e) {
-        if (isMeasuring) {
-          addMeasurePoint(e.lngLat);
-        }
-      });
 
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
       map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
@@ -4773,96 +3279,6 @@
       panelHandle.addEventListener('touchend', function () { dragStartY = null; });
       panelHandle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
       panelToggle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
-
-      // ── BARRE D'OUTILS MOBILE ────────────────────────────────────────────────
-      var mobileSolunarBtn = $('mobileSolunarBtn');
-      var mobileWeatherBtn = $('mobileWeatherBtn');
-      var mobileCompassBtn = $('mobileCompassBtn');
-      var mobileMeasureBtn = $('mobileMeasureBtn');
-      var mobilePanelBtn = $('mobilePanelBtn');
-
-      console.log('Mobile buttons found:', {
-        solunar: !!mobileSolunarBtn,
-        weather: !!mobileWeatherBtn,
-        compass: !!mobileCompassBtn,
-        measure: !!mobileMeasureBtn,
-        panel: !!mobilePanelBtn
-      });
-
-      if (mobileSolunarBtn) {
-        mobileSolunarBtn.addEventListener('click', function () {
-          console.log('Mobile Solunar clicked');
-          var p = $('solunarPanel');
-          console.log('Solunar panel found:', !!p);
-          if (p) {
-            if (p.classList.contains('open')) {
-              p.classList.remove('open');
-              console.log('Solunar panel closed');
-            } else {
-              p.classList.add('open');
-              console.log('Solunar panel opened');
-              var center = map.getCenter();
-              if (typeof loadSolunar === 'function') {
-                loadSolunar(center.lat, center.lng);
-              } else {
-                console.error('loadSolunar not defined');
-              }
-            }
-          }
-        });
-      }
-
-      if (mobileWeatherBtn) {
-        mobileWeatherBtn.addEventListener('click', function () {
-          console.log('Mobile Weather clicked');
-          var p = $('weatherPanel');
-          console.log('Weather panel found:', !!p);
-          if (p) {
-            if (p.classList.contains('open')) {
-              p.classList.remove('open');
-              console.log('Weather panel closed');
-            } else {
-              p.classList.add('open');
-              console.log('Weather panel opened');
-              var center = map.getCenter();
-              if (typeof loadWeather === 'function') {
-                loadWeather(center.lat, center.lng);
-              } else {
-                console.error('loadWeather not defined');
-              }
-            }
-          }
-        });
-      }
-
-      if (mobileCompassBtn) {
-        mobileCompassBtn.addEventListener('click', function () {
-          console.log('Mobile Compass clicked');
-          if (typeof startCompass === 'function') {
-            startCompass();
-          } else {
-            console.error('startCompass not defined');
-          }
-        });
-      }
-
-      if (mobileMeasureBtn) {
-        mobileMeasureBtn.addEventListener('click', function () {
-          console.log('Mobile Measure clicked');
-          if (typeof startMeasure === 'function') {
-            startMeasure();
-          } else {
-            console.error('startMeasure not defined');
-          }
-        });
-      }
-
-      if (mobilePanelBtn) {
-        mobilePanelBtn.addEventListener('click', function () {
-          console.log('Mobile Panel clicked');
-          setPanelOpen(!panel.classList.contains('open'));
-        });
-      }
 
       // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
       var inputs = document.querySelectorAll('input[data-layer]');
@@ -5220,58 +3636,11 @@
         });
       }
 
-      searchInput.addEventListener('input', function () { clearTimeout(searchDebnce); searchDebounce = setTimeout(function () { dosearchInput.value); }, 400);
-    });
-    searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
+      searchInput.addEventListener('input', function () { clearTimeout(searchDebounce); searchDebounce = setTimeout(function () { doSearch(searchInput.value); }, 400); });
+      searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
 
-    }) ();
+    })();
   </script>
-
-  <!-- BARRE D'OUTILS MOBILE -->
-  <div class="mobile-toolbar">
-    <button class="mobile-toolbar-btn" id="mobileSolunarBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-      </svg>
-      <span>Lune</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobileWeatherBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"></circle>
-        <line x1="12" y1="1" x2="12" y2="3"></line>
-        <line x1="12" y1="21" x2="12" y2="23"></line>
-      </svg>
-      <span>Météo</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobileCompassBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-      </svg>
-      <span>Boussole</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobileMeasureBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <circle cx="6" cy="6" r="3"></circle>
-        <circle cx="18" cy="18" r="3"></circle>
-        <line x1="8.12" y1="8.12" x2="15.88" y2="15.88"></line>
-      </svg>
-      <span>Mesure</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobilePanelBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-      <span>Menu</span>
-    </button>
-  </div>
 
 </body>
 
