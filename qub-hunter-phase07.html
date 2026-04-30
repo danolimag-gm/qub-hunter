@@ -4778,11 +4778,14 @@
         mobileSolunarBtn.addEventListener('click', function () {
           console.log('Mobile Solunar clicked');
           var p = $('solunarPanel');
+          console.log('Solunar panel found:', !!p);
           if (p) {
             if (p.classList.contains('open')) {
               p.classList.remove('open');
+              console.log('Solunar panel closed');
             } else {
               p.classList.add('open');
+              console.log('Solunar panel opened');
               var center = map.getCenter();
               if (typeof loadSolunar === 'function') {
                 loadSolunar(center.lat, center.lng);
@@ -4798,11 +4801,14 @@
         mobileWeatherBtn.addEventListener('click', function () {
           console.log('Mobile Weather clicked');
           var p = $('weatherPanel');
+          console.log('Weather panel found:', !!p);
           if (p) {
             if (p.classList.contains('open')) {
               p.classList.remove('open');
+              console.log('Weather panel closed');
             } else {
               p.classList.add('open');
+              console.log('Weather panel opened');
               var center = map.getCenter();
               if (typeof loadWeather === 'function') {
                 loadWeather(center.lat, center.lng);
@@ -5199,7 +5205,7 @@
         });
       }
 
-      searchInput.addEventListener('input', function () { clearTimeout(searchDebounce); searchDebounce = setTimeout(function () { doSearch(searchInput.value); }, 400); });
+      searchInput.addEventListener('input', function () { clearTimeout(searchDebnce); searchDebounce = setTimeout(function () { dosearchInput.value); }, 400); });
       searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
 
     })();
