@@ -2079,7 +2079,15 @@
         left: 10px;
         width: auto;
         max-width: none;
-        z-index: 100;
+        z-index: 20000;
+      }
+
+      .panel {
+        z-index: 15000;
+      }
+
+      .search-overlay {
+        z-index: 25000;
       }
 
       /* Empêcher le panneau latéral de prendre toute la largeur */
@@ -4754,46 +4762,79 @@
       var mobileMeasureBtn = $('mobileMeasureBtn');
       var mobilePanelBtn = $('mobilePanelBtn');
 
+      console.log('Mobile buttons found:', {
+        solunar: !!mobileSolunarBtn,
+        weather: !!mobileWeatherBtn,
+        compass: !!mobileCompassBtn,
+        measure: !!mobileMeasureBtn,
+        panel: !!mobilePanelBtn
+      });
+
       if (mobileSolunarBtn) {
         mobileSolunarBtn.addEventListener('click', function () {
+          console.log('Mobile Solunar clicked');
           var p = $('solunarPanel');
-          if (p.classList.contains('open')) {
-            p.classList.remove('open');
-          } else {
-            p.classList.add('open');
-            var center = map.getCenter();
-            loadSolunar(center.lat, center.lng);
+          if (p) {
+            if (p.classList.contains('open')) {
+              p.classList.remove('open');
+            } else {
+              p.classList.add('open');
+              var center = map.getCenter();
+              if (typeof loadSolunar === 'function') {
+                loadSolunar(center.lat, center.lng);
+              } else {
+                console.error('loadSolunar not defined');
+              }
+            }
           }
         });
       }
 
       if (mobileWeatherBtn) {
         mobileWeatherBtn.addEventListener('click', function () {
+          console.log('Mobile Weather clicked');
           var p = $('weatherPanel');
-          if (p.classList.contains('open')) {
-            p.classList.remove('open');
-          } else {
-            p.classList.add('open');
-            var center = map.getCenter();
-            loadWeather(center.lat, center.lng);
+          if (p) {
+            if (p.classList.contains('open')) {
+              p.classList.remove('open');
+            } else {
+              p.classList.add('open');
+              var center = map.getCenter();
+              if (typeof loadWeather === 'function') {
+                loadWeather(center.lat, center.lng);
+              } else {
+                console.error('loadWeather not defined');
+              }
+            }
           }
         });
       }
 
       if (mobileCompassBtn) {
         mobileCompassBtn.addEventListener('click', function () {
-          startCompass();
+          console.log('Mobile Compass clicked');
+          if (typeof startCompass === 'function') {
+            startCompass();
+          } else {
+            console.error('startCompass not defined');
+          }
         });
       }
 
       if (mobileMeasureBtn) {
         mobileMeasureBtn.addEventListener('click', function () {
-          startMeasure();
+          console.log('Mobile Measure clicked');
+          if (typeof startMeasure === 'function') {
+            startMeasure();
+          } else {
+            console.error('startMeasure not defined');
+          }
         });
       }
 
       if (mobilePanelBtn) {
         mobilePanelBtn.addEventListener('click', function () {
+          console.log('Mobile Panel clicked');
           setPanelOpen(!panel.classList.contains('open'));
         });
       }
