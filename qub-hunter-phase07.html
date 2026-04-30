@@ -1977,7 +1977,7 @@
     }
 
     /* ── RESPONSIVE MOBILE ── */
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
 
       .brand-sub,
       .net-badge {
@@ -2023,6 +2023,8 @@
         justify-content: space-around;
         align-items: center;
         visibility: visible;
+        pointer-events: auto;
+        touch-action: manipulation;
       }
 
       .mobile-toolbar-btn {
@@ -2039,6 +2041,8 @@
         cursor: pointer;
         transition: all 0.15s;
         min-width: 52px;
+        pointer-events: auto;
+        -webkit-tap-highlight-color: rgba(212, 197, 160, 0.3);
       }
 
       .mobile-toolbar-btn:active {
@@ -2097,7 +2101,7 @@
     }
 
     /* Desktop: cacher la barre mobile */
-    @media (min-width: 481px) {
+    @media (min-width: 601px) {
       .mobile-toolbar {
         display: none !important;
       }
