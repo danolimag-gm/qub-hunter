@@ -1749,7 +1749,7 @@
     /* ── COORDINATES ── */
     .compass-readout {
       position: absolute;
-      right: 14px;
+      left: 14px;
       top: calc(env(safe-area-inset-top) + 64px);
       z-index: 1;
       background: rgba(29, 40, 24, 0.85);
@@ -1831,6 +1831,10 @@
     .loading-badge.hidden {
       opacity: 0;
       pointer-events: none;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     .spinner {
@@ -2781,6 +2785,58 @@
 
     </div>
   </aside>
+
+  <!-- BARRE D'OUTILS MOBILE -->
+  <div class="mobile-toolbar">
+    <button class="mobile-toolbar-btn" id="mobileSolunarBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+      <span>Lune</span>
+    </button>
+    <button class="mobile-toolbar-btn" id="mobileWeatherBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+      <span>Météo</span>
+    </button>
+    <button class="mobile-toolbar-btn" id="mobileCompassBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+      </svg>
+      <span>Boussole</span>
+    </button>
+    <button class="mobile-toolbar-btn" id="mobileMeasureBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="6" cy="6" r="3"></circle>
+        <circle cx="18" cy="18" r="3"></circle>
+        <line x1="8.12" y1="8.12" x2="15.88" y2="15.88"></line>
+      </svg>
+      <span>Mesure</span>
+    </button>
+    <button class="mobile-toolbar-btn" id="mobilePanelBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <span>Menu</span>
+    </button>
+  </div>
 
   <script>
     (function () {
@@ -5200,52 +5256,6 @@
 
     })();
   </script>
-
-  <!-- BARRE D'OUTILS MOBILE -->
-  <div class="mobile-toolbar">
-    <button class="mobile-toolbar-btn" id="mobileSolunarBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-      </svg>
-      <span>Lune</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobileWeatherBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"></circle>
-        <line x1="12" y1="1" x2="12" y2="3"></line>
-        <line x1="12" y1="21" x2="12" y2="23"></line>
-      </svg>
-      <span>Météo</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobileCompassBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-      </svg>
-      <span>Boussole</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobileMeasureBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <circle cx="6" cy="6" r="3"></circle>
-        <circle cx="18" cy="18" r="3"></circle>
-        <line x1="8.12" y1="8.12" x2="15.88" y2="15.88"></line>
-      </svg>
-      <span>Mesure</span>
-    </button>
-    <button class="mobile-toolbar-btn" id="mobilePanelBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-      <span>Menu</span>
-    </button>
-  </div>
 
 </body>
 
