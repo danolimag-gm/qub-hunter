@@ -2999,7 +2999,10 @@
 
       var solunarFab = $('solunarFab');
       if (solunarFab) {
-        solunarFab.addEventListener('click', openSolunarPanel);
+        solunarFab.addEventListener('click', function () {
+          console.log('Solunar FAB clicked');
+          openSolunarPanel();
+        });
       }
 
       // ── HELPER XML ESCAPE ────────────────────────────────────────────────────
