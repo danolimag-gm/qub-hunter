@@ -1,0 +1,120 @@
+/* Qub Hunter — Correctifs spécifiques iOS/Mobile */
+
+:root {
+    /* Utilisation de dvh (dynamic viewport height) pour corriger le bug du 100vh sur iOS */
+    --app-height: 100vh;
+    --app-height: 100dvh;
+}
+
+html,
+body {
+    height: var(--app-height);
+    width: 100%;
+    position: fixed;
+    /* Empêche le rebond élastique global sur iOS */
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    /* Désactive le pull-to-refresh qui interfère avec la carte */
+    overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    /* Empêche la sélection de texte accidentelle en manipulant la carte */
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: var(--app-height);
+}
+
+/* Ajustement du Drawer pour les Safe Areas (Encoche et barre home) */
+.drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    /* Effet Glassmorphism natif iOS */
+    background: rgba(240, 232, 214, 0.85);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    padding-bottom: env(safe-area-inset-bottom);
+    max-height: 95dvh;
+    display: flex;
+    flex-direction: column;
+    /* Hauteur minimale de la poignée + barre de recherche pour le pouce */
+    transform: translateY(calc(100% - 80px - env(safe-area-inset-bottom)));
+    /* Par défaut, juste la poignée visible */
+}
+
+.drawer.is-open {
+    transform: translateY(0);
+}
+
+.drawer-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Défilement fluide sur iOS */
+    padding: 15px;
+}
+
+/* Contrôles MapLibre Customisés pour Mobile */
+.maplibregl-ctrl-group {
+    border: none !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+button,
+.clickable {
+    min-height: 48px;
+    /* Augmenté pour l'usage avec des gants en forêt */
+    min-width: 48px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+input[type="text"],
+input[type="number"],
+search {
+    -webkit-appearance: none;
+    /* Supprime l'ombre interne iOS */
+    background: rgba(0, 0, 0, 0.05);
+    font-size: 16px !important;
+    border-radius: 10px;
+    border: none;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+}
+
+/* Positionnement des contrôles MapLibre pour ne pas être cachés par le notch */
+.maplibregl-ctrl-top-right {
+    top: env(safe-area-inset-top);
+    right: env(safe-area-inset-right);
+}
+
+.maplibregl-ctrl-bottom-right {
+    /* On remonte les contrôles au dessus du drawer fermé */
+    bottom: calc(env(safe-area-inset-bottom) + 90px) !important;
+    transition: opacity 0.3s;
+}
+
+/* Style pour la poignée du drawer (plus intuitif sur mobile) */
+.drawer-handle {
+    width: 36px;
+    height: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    margin: 12px auto 8px auto;
+}

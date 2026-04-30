@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="UTF-8">
+<title>Test iCherche — Cadastre</title>
+<style>
+  body { font-family: monospace; background: #1d2818; color: #f0e8d6; padding: 20px; }
+  h2 { color: #b88a3e; }
+  .btn { background: #3d5234; color: #f0e8d6; border: 1px solid #b88a3e; padding: 8px 16px; cursor: pointer; font-family: monospace; font-size: 13px; margin: 4px; border-radius: 3px; }
+  .btn:hover { background: #b88a3e; color: #1d2818; }
+  input { background: #2a3826; color: #f0e8d6; border: 1px solid #6b7d4a; padding: 8px 12px; font-family: monospace; font-size: 13px; width: 260px; border-radius: 3px; }
+  pre { background: #111; border: 1px solid #3d5234; padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.5; border-radius: 4px; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+  .ok  { color: #6b7d4a; }
+  .err { color: #a04a28; }
+  .gold { color: #b88a3e; }
+  label { display: block; margin-bottom: 6px; font-size: 11px; color: #d4c5a0; text-transform: uppercase; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+
+<h2>🔬 Test APIs — Recherche cadastrale Québec</h2>
+
+<div style="margin-bottom:16px">
+  <label>Numéro de lot</label>
+  <input id="lotInput" value="5778374" />
+</div>
+
+<div style="margin-bottom:8px;font-size:11px;color:#b88a3e;text-transform:uppercase;letter-spacing:.1em">iCherche (MSP) — CORS OK depuis le navigateur</div>
+<div style="margin-bottom:14px">
+  <button class="btn" onclick="test('cadastre')">type=cadastre (→ 403)</button>
+  <button class="btn" onclick="testNoType()">sans type (recherche libre) ★</button>
+  <button class="btn" onclick="test('adresse,municipalite,mrc,cadastre')">type=tous</button>
+  <button class="btn" onclick="test2()">Parallèle : 5778374,5854526</button>
+</div>
+
+<div style="margin-bottom:8px;font-size:11px;color:#b88a3e;text-transform:uppercase;letter-spacing:.1em">Infolot /Infolot/ (majuscule) ★★★</div>
+<div style="margin-bottom:14px">
+  <button class="btn" onclick="testInfolot('/api/Lot/')">api/Lot/</button>
+  <button class="btn" onclick="testInfolot('/Service/Lot/')">Service/Lot/</button>
+  <button class="btn" onclick="testInfolot('/Services/Lot/')">Services/Lot/</button>
+  <button class="btn" onclick="testInfolot('/api/lots/')">api/lots/</button>
+  <button class="btn" onclick="testInfolotQuery('api/Lot/Recherche', 'noLot')">api/Lot/Recherche?noLot=</button>
+  <button class="btn" onclick="testInfolotQuery('api/Lot/GetByNo', 'no')">api/Lot/GetByNo?no=</button>
+  <button class="btn" onclick="testInfolotQuery('Service/Lot/GetByNoLot', 'noLot')">Service/Lot/GetByNoLot?noLot=</button>
+  <button class="btn" onclick="testInfolotQuery('api/recherche', 'lot')">api/recherche?lot=</button>
+</div>
+
+<div style="margin-bottom:8px;font-size:11px;color:#b88a3e;text-transform:uppercase;letter-spacing:.1em">MERN ArcGIS REST (CORS bloqué — pour référence)</div>
+<div style="margin-bottom:20px">
+  <button class="btn" onclick="testMern(0)">MERN /Cadastre/CadastreQc</button>
+  <button class="btn" onclick="testMern(1)">MERN /Cadastre/CadastreQc_WMS</button>
+</div>
+
+<div id="status" style="margin-bottom:10px;font-size:12px;color:#d4c5a0"></div>
+<pre id="out">Cliquez un bouton pour lancer le test…</pre>
+
+<script>
+function setStatus(msg, ok) {
+  var el = document.getElementById('status');
+  el.innerHTML = '<span class="' + (ok ? 'ok' : 'err') + '">' + msg + '</span>';
+}
+
+function test(type) {
+  var lot = document.getElementById('lotInput').value.trim();
+  var url = 'https://geoegl.msp.gouv.qc.ca/apis/icherche/geocode?q=' +
+    encodeURIComponent(lot) + '&type=' + encodeURIComponent(type) + '&limit=3&epsg=4326';
+
+  setStatus('Requête en cours : ' + url);
+  document.getElementById('out').textContent = 'Chargement…';
+
+  fetch(url)
+    .then(function(r) {
+      setStatus('HTTP ' + r.status + (r.ok ? ' ✓' : ' ✗'), r.ok);
+      return r.json();
+    })
+    .then(function(data) {
+      // Afficher le JSON complet
+      var out = JSON.stringify(data, null, 2);
+      document.getElementById('out').textContent = out;
+
+      // Analyser le premier résultat
+      if (data.features && data.features.length > 0) {
+        var f = data.features[0];
+        var p = f.properties || {};
+        var analysis = '\n\n━━━ ANALYSE DU PREMIER RÉSULTAT ━━━\n';
+        analysis += 'geometry.type : ' + (f.geometry && f.geometry.type) + '\n';
+        analysis += 'coordinates   : ' + JSON.stringify(f.geometry && f.geometry.coordinates) + '\n';
+        analysis += '\n--- Champs de propriété ---\n';
+        Object.keys(p).forEach(function(k) {
+          analysis += k.padEnd(20) + ': ' + JSON.stringify(p[k]) + '\n';
+        });
+        analysis += '\n--- Champs cherchés par le code ---\n';
+        analysis += 'lotNo (no_lot/NO_LOT/recherche) : ' + (p.no_lot || p.NO_LOT || p.nolot || p.recherche || '❌ absent') + '\n';
+        analysis += 'muni  (nommun/nom_mun/mun_nom)  : ' + (p.nommun || p.nom_mun || p.municipalite || p.mun_nom || '❌ absent') + '\n';
+        analysis += 'mrc   (mrc_s/mrc_nom/mrc)       : ' + (p.mrc_s || p.mrc_nom || p.nom_mrc || p.mrc || '❌ absent') + '\n';
+        analysis += 'type                            : ' + (p.type || '❌ absent') + '\n';
+        document.getElementById('out').textContent += analysis;
+      } else {
+        document.getElementById('out').textContent += '\n\n⚠ Aucun résultat retourné par iCherche.';
+      }
+    })
+    .catch(function(err) {
+      setStatus('Erreur réseau : ' + err.message, false);
+      document.getElementById('out').textContent = 'Erreur : ' + err.message +
+        '\n\nPossible cause CORS si ouvert en file:// — utilisez un serveur local :\n  python3 -m http.server 8000';
+    });
+}
+
+function testNoType() {
+  var lot = document.getElementById('lotInput').value.trim();
+  // Test iCherche sans restriction de type — vérifie si un lot cadastral apparaît dans la recherche libre
+  var url = 'https://geoegl.msp.gouv.qc.ca/apis/icherche/geocode?q=' +
+    encodeURIComponent(lot) + '&limit=5&epsg=4326';
+  setStatus('iCherche (sans type) : ' + url);
+  document.getElementById('out').textContent = 'Chargement…';
+  fetch(url)
+    .then(function(r) { setStatus('HTTP ' + r.status + (r.ok ? ' ✓' : ' ✗'), r.ok); return r.json(); })
+    .then(function(data) {
+      var out = JSON.stringify(data, null, 2);
+      document.getElementById('out').textContent = out;
+      var analysis = '\n\n━━━ ANALYSE ━━━\n';
+      if (!data.features || !data.features.length) {
+        analysis += '⚠ Aucun résultat — le lot n\'est pas trouvé en recherche libre.\n';
+      } else {
+        data.features.forEach(function(f, i) {
+          var p = f.properties || {};
+          analysis += '\n[' + i + '] type=' + (p.type||'?') + '  nom=' + (p.recherche||p.nom||'?') + '\n';
+          analysis += '    no_lot=' + (p.no_lot||p.NO_LOT||'absent') + '  nommun=' + (p.nommun||p.nom_mun||'absent') + '\n';
+          analysis += '    mrc=' + (p.mrc_s||p.mrc||'absent') + '\n';
+          if (f.geometry) {
+            var coords = f.geometry.coordinates;
+            if (f.geometry.type === 'Point') analysis += '    Point : ' + coords[1].toFixed(5) + ', ' + coords[0].toFixed(5) + '\n';
+            else analysis += '    Géométrie : ' + f.geometry.type + '\n';
+          }
+        });
+        analysis += '\n→ Si type=cadastre apparaît → on peut l\'utiliser dans phase05 !\n';
+        analysis += '→ Si seulement adresse/mun → la recherche libre ne retourne pas les lots.\n';
+      }
+      document.getElementById('out').textContent += analysis;
+    })
+    .catch(function(err) {
+      setStatus('Erreur : ' + err.message, false);
+      document.getElementById('out').textContent = 'Erreur : ' + err.message;
+    });
+}
+
+// ── Atlas Québec WFS (services vectoriels publics du gouvernement du Québec) ──
+var ATLAS_URLS = [
+  // WFS du cadastre graphique — Atlas géospatial du Québec
+  'https://servicesvectoriels.atlas.gouv.qc.ca/IDS_CADASTRE_GRAPHIQUE_WFS/ows',
+  // Variante : service LOT_CADASTRAL
+  'https://servicesvectoriels.atlas.gouv.qc.ca/IDS_LOT_CADASTRAL_WFS/ows',
+  // Infolot REST
+  'https://appli.foncier.gouv.qc.ca/infolot/rest/v1/lots'
+];
+
+var INFOLOT_BASE = 'https://appli.foncier.gouv.qc.ca/Infolot';  // Majuscule I !
+
+function testInfolot(path) {
+  var lot = document.getElementById('lotInput').value.trim();
+  var url = INFOLOT_BASE + path + encodeURIComponent(lot);
+  setStatus('Requête : ' + url);
+  document.getElementById('out').textContent = 'Chargement…';
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) {
+      setStatus('HTTP ' + r.status + (r.ok ? ' ✓ TROUVÉ !' : ' ✗'), r.ok);
+      return r.text();
+    })
+    .then(function(text) {
+      document.getElementById('out').textContent = text.substring(0, 3000);
+      if (text.includes(lot) && !text.includes('404') && !text.includes('not found')) {
+        document.getElementById('out').textContent += '\n\n✓ LE LOT ' + lot + ' APPARAÎT DANS LA RÉPONSE !';
+      }
+    })
+    .catch(function(err) {
+      setStatus('Erreur CORS : ' + err.message, false);
+      document.getElementById('out').textContent = 'Erreur CORS — ce chemin est bloqué côté navigateur.';
+    });
+}
+
+function testInfolotQuery(endpoint, param) {
+  var lot = document.getElementById('lotInput').value.trim();
+  var url = INFOLOT_BASE + '/' + endpoint + '?' + param + '=' + encodeURIComponent(lot);
+  setStatus('Requête : ' + url);
+  document.getElementById('out').textContent = 'Chargement…';
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) {
+      setStatus('HTTP ' + r.status + (r.ok ? ' ✓ TROUVÉ !' : ' ✗'), r.ok);
+      return r.text();
+    })
+    .then(function(text) {
+      document.getElementById('out').textContent = text.substring(0, 3000);
+    })
+    .catch(function(err) {
+      setStatus('Erreur CORS : ' + err.message, false);
+      document.getElementById('out').textContent = 'Erreur CORS.';
+    });
+}
+
+function testAtlas(idx) {
+  var lot = document.getElementById('lotInput').value.trim();
+  var url;
+  if (idx === 0 || idx === 1) {
+    var layerNames = ['IDS_CADASTRE_GRAPHIQUE_WFS:CADASTRE_GRAPHIQUE', 'IDS_LOT_CADASTRAL_WFS:LOT_CADASTRAL'];
+    url = ATLAS_URLS[idx] + '?service=WFS&version=2.0.0&request=GetFeature' +
+      '&typeNames=' + encodeURIComponent(layerNames[idx]) +
+      '&srsName=EPSG:4326&outputFormat=application/json' +
+      '&CQL_FILTER=' + encodeURIComponent("NO_LOT='" + lot + "'") +
+      '&count=1';
+  } else {
+    // Infolot REST
+    url = ATLAS_URLS[2] + '/' + encodeURIComponent(lot);
+  }
+
+  setStatus('Requête : ' + url);
+  document.getElementById('out').textContent = 'Chargement…';
+
+  fetch(url)
+    .then(function(r) {
+      setStatus('HTTP ' + r.status + (r.ok ? ' ✓' : ' ✗'), r.ok);
+      return r.text();
+    })
+    .then(function(text) {
+      var parsed;
+      try { parsed = JSON.parse(text); } catch(e) { parsed = null; }
+      document.getElementById('out').textContent = parsed ? JSON.stringify(parsed, null, 2) : text;
+
+      if (parsed && (parsed.features || parsed.geometry || parsed.no_lot || parsed.coordinates)) {
+        var analysis = '\n\n━━━ ✓ SUCCÈS — API utilisable ! ━━━\n';
+        analysis += 'URL : ' + url + '\n';
+        if (parsed.features && parsed.features[0]) {
+          var f = parsed.features[0];
+          var p = f.properties || {};
+          analysis += '\nPremier résultat :\n';
+          Object.keys(p).forEach(function(k) { analysis += '  ' + k + ' : ' + JSON.stringify(p[k]) + '\n'; });
+        }
+        document.getElementById('out').textContent += analysis;
+      } else if (parsed && parsed.error) {
+        document.getElementById('out').textContent += '\n\n⚠ Erreur API : ' + JSON.stringify(parsed.error);
+      }
+    })
+    .catch(function(err) {
+      setStatus('Erreur : ' + err.message, false);
+      document.getElementById('out').textContent =
+        'Erreur : ' + err.message +
+        '\n\n→ Si "Load failed" ou "CORS" : ce service ne supporte pas les appels depuis le navigateur.\n' +
+        '→ Essayez le bouton suivant.';
+    });
+}
+
+var MERN_URLS = [
+  'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Cadastre/CadastreQc/MapServer/0/query',
+  'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Cadastre/CadastreQc_WMS/MapServer/0/query',
+  'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Territoire/BDGA_CadastreQc_Lot/MapServer/0/query'
+];
+
+function testMern(urlIndex) {
+  var lot = document.getElementById('lotInput').value.trim();
+  var base = MERN_URLS[urlIndex];
+  var url = base + '?where=' + encodeURIComponent("NO_LOT='" + lot + "'") +
+    '&outFields=NO_LOT,NOLOT,NOM_MUN,NOMMUN,NOM_MRC,MRC_S' +
+    '&returnGeometry=true&outSR=4326&f=json';
+
+  setStatus('Requête MERN : ' + url);
+  document.getElementById('out').textContent = 'Chargement…';
+
+  fetch(url)
+    .then(function(r) {
+      setStatus('HTTP ' + r.status + (r.ok ? ' ✓' : ' ✗'), r.ok);
+      return r.json();
+    })
+    .then(function(data) {
+      var out = JSON.stringify(data, null, 2);
+      document.getElementById('out').textContent = out;
+
+      var analysis = '\n\n━━━ ANALYSE ━━━\n';
+      if (data.features && data.features.length > 0) {
+        var f = data.features[0];
+        var attr = f.attributes || {};
+        analysis += 'Nb features    : ' + data.features.length + '\n';
+        analysis += 'geometry.type  : ' + (f.geometry ? (f.geometry.rings ? 'Polygon (rings)' : 'Point') : 'null') + '\n';
+        if (f.geometry && f.geometry.rings && f.geometry.rings[0]) {
+          var ring = f.geometry.rings[0];
+          var sl=0,slt=0; ring.forEach(function(p){sl+=p[0];slt+=p[1];});
+          analysis += 'centroïde      : ' + (slt/ring.length).toFixed(5) + ', ' + (sl/ring.length).toFixed(5) + '\n';
+        }
+        analysis += '\n--- Attributs ---\n';
+        Object.keys(attr).forEach(function(k) { analysis += k.padEnd(20) + ': ' + JSON.stringify(attr[k]) + '\n'; });
+        analysis += '\n--- Champs clés cherchés ---\n';
+        analysis += 'NO_LOT  : ' + (attr.NO_LOT  || '❌ absent') + '\n';
+        analysis += 'NOLOT   : ' + (attr.NOLOT   || '❌ absent') + '\n';
+        analysis += 'NOM_MUN : ' + (attr.NOM_MUN || attr.NOMMUN || '❌ absent') + '\n';
+        analysis += 'NOM_MRC : ' + (attr.NOM_MRC || attr.MRC_S  || '❌ absent') + '\n';
+      } else if (data.error) {
+        analysis += '⚠ Erreur serveur : ' + JSON.stringify(data.error) + '\n';
+        analysis += '\n→ Cette couche n\'existe peut-être pas. Essayez les autres boutons MERN.\n';
+      } else {
+        analysis += '⚠ Aucun feature retourné (lot ' + lot + ' introuvable dans cette couche)\n';
+      }
+      document.getElementById('out').textContent += analysis;
+    })
+    .catch(function(err) {
+      setStatus('Erreur réseau : ' + err.message, false);
+      document.getElementById('out').textContent = 'Erreur : ' + err.message +
+        '\n\nCauses possibles :\n' +
+        '  1. CORS — ouvrir en file:// bloque les requêtes cross-origin.\n' +
+        '     → Servez via python3 -m http.server 8000\n' +
+        '  2. Le service MERN n\'est pas accessible publiquement.\n' +
+        '  3. La couche n\'existe pas à cette URL.';
+    });
+}
+
+function testMernParallel() {
+  var lots = ['5778374', '5854526'];
+  setStatus('MERN — Recherche parallèle de ' + lots.length + ' lots…');
+  document.getElementById('out').textContent = 'Chargement…';
+
+  var promises = lots.map(function(lot) {
+    var url = MERN_URLS[0] + '?where=' + encodeURIComponent("NO_LOT='" + lot + "'") +
+      '&outFields=NO_LOT,NOM_MUN,NOM_MRC&returnGeometry=true&outSR=4326&f=json';
+    return fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.features || !data.features.length) return { lot: lot, found: false };
+        var f = data.features[0]; var attr = f.attributes || {};
+        var lng = null, lat = null;
+        if (f.geometry && f.geometry.rings && f.geometry.rings[0]) {
+          var ring = f.geometry.rings[0], sl=0,slt=0;
+          ring.forEach(function(p){sl+=p[0];slt+=p[1];});
+          lng = sl/ring.length; lat = slt/ring.length;
+        }
+        return { lot: lot, found: true, muni: attr.NOM_MUN||'?', mrc: attr.NOM_MRC||'?', lat: lat, lng: lng };
+      })
+      .catch(function(e) { return { lot: lot, found: false, error: e.message }; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    var out = '━━━ RÉSULTATS MERN PARALLÈLES ━━━\n\n';
+    results.forEach(function(r) {
+      out += 'Lot ' + r.lot + ' : ';
+      if (r.found) {
+        out += '✓ TROUVÉ\n';
+        out += '  muni  : ' + r.muni + '\n';
+        out += '  mrc   : ' + r.mrc  + '\n';
+        out += '  coord : ' + (r.lat ? r.lat.toFixed(5) : '?') + ', ' + (r.lng ? r.lng.toFixed(5) : '?') + '\n';
+      } else {
+        out += '✗ ' + (r.error ? 'ERREUR : ' + r.error : 'NON TROUVÉ') + '\n';
+      }
+      out += '\n';
+    });
+    document.getElementById('out').textContent = out;
+    setStatus('Terminé', results.some(function(r){ return r.found; }));
+  });
+}
+
+function test2() {
+  // Simule la recherche de deux lots séparément (comme le fait le code phase05)
+  var lots = ['5778374', '5854526'];
+  setStatus('Recherche parallèle de ' + lots.length + ' lots…');
+  document.getElementById('out').textContent = 'Chargement…';
+
+  var promises = lots.map(function(lot) {
+    var url = 'https://geoegl.msp.gouv.qc.ca/apis/icherche/geocode?q=' +
+      encodeURIComponent(lot) + '&type=cadastre&limit=1&epsg=4326';
+    return fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.features || !data.features.length) return { lot: lot, found: false };
+        var f = data.features[0]; var p = f.properties || {};
+        var coords = f.geometry && f.geometry.coordinates;
+        var lng, lat;
+        if (f.geometry.type === 'Point') { lng = coords[0]; lat = coords[1]; }
+        return { lot: lot, found: true, muni: p.nommun||p.nom_mun||'?', mrc: p.mrc_s||p.mrc||'?', lng: lng, lat: lat, rawType: p.type };
+      })
+      .catch(function() { return { lot: lot, found: false, error: true }; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    var out = '━━━ RÉSULTATS PARALLÈLES ━━━\n\n';
+    results.forEach(function(r) {
+      out += 'Lot ' + r.lot + ' : ';
+      if (r.found) {
+        out += '✓ TROUVÉ\n';
+        out += '  muni : ' + r.muni + '\n';
+        out += '  mrc  : ' + r.mrc  + '\n';
+        out += '  coord: ' + (r.lat ? r.lat.toFixed(5) : '?') + ', ' + (r.lng ? r.lng.toFixed(5) : '?') + '\n';
+        out += '  type : ' + (r.rawType || '?') + '\n';
+      } else {
+        out += '✗ ' + (r.error ? 'ERREUR RÉSEAU' : 'NON TROUVÉ') + '\n';
+      }
+      out += '\n';
+    });
+    document.getElementById('out').textContent = out;
+    setStatus('Terminé', results.some(function(r) { return r.found; }));
+  });
+}
+</script>
+</body>
+</html>

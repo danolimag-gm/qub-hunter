@@ -1,120 +1,126 @@
 /* Qub Hunter — Service Worker — Phase 03 */
 'use strict';
 
-var STATIC = 'qub-hunter-static-v1';
-var MRNF   = 'qub-hunter-mrnf-v1';
-var TILES  = 'qub-hunter-tiles-v1';
-var ALL_CACHES = [STATIC, MRNF, TILES];
-var MAX_TILES  = 500;
+const STATIC = 'qub-hunter-static-v1';
+const MRNF = 'qub-hunter-mrnf-v1';
+const TILES = 'qub-hunter-tiles-v1';
+const ALL_CACHES = [STATIC, MRNF, TILES];
+const MAX_TILES = 500;
 
-var PRECACHE_URLS = [
+const PRECACHE_URLS = [
   'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js',
   'https://cdn.jsdelivr.net/npm/pmtiles@3.2.0/dist/pmtiles.js'
 ];
 
 // ── INSTALL : pré-cache assets statiques ──────────────────────────────────────
-self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(STATIC).then(function(cache) {
-      return cache.addAll(PRECACHE_URLS).catch(function() {});
-    })
-  );
+self.addEventListener('install', (e) => {
+  e.waitUntil((async () => {
+    const cache = await caches.open(STATIC);
+    await cache.addAll(PRECACHE_URLS).catch(() => { });
+  })());
   self.skipWaiting();
 });
 
 // ── ACTIVATE : purge anciens caches ──────────────────────────────────────────
-self.addEventListener('activate', function(e) {
-  e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k) { return ALL_CACHES.indexOf(k) === -1; })
-            .map(function(k) { return caches.delete(k); })
-      );
-    })
-  );
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys.filter(k => !ALL_CACHES.includes(k))
+        .map(k => caches.delete(k))
+    );
+  })());
   self.clients.claim();
 });
 
 // ── FETCH : stratégies de cache ───────────────────────────────────────────────
-self.addEventListener('fetch', function(e) {
-  var url;
-  try { url = new URL(e.request.url); } catch(_) { return; }
-
+self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
 
-  var host = url.hostname;
+  let url;
+  try { url = new URL(e.request.url); } catch { return; }
+
+  const host = url.hostname;
 
   // Assets statiques CDN (MapLibre, PMTiles.js, Google Fonts)
-  if (host.indexOf('jsdelivr') !== -1 ||
-      host.indexOf('googleapis') !== -1 ||
-      host.indexOf('gstatic') !== -1) {
+  if (host.includes('jsdelivr') ||
+    host.includes('googleapis') ||
+    host.includes('gstatic')) {
     e.respondWith(cacheFirst(e.request, STATIC));
     return;
   }
 
   // APIs MRNF (ArcGIS REST) et iCherche : Network First avec fallback cache
-  if (host.indexOf('mern.gouv.qc.ca') !== -1 ||
-      host.indexOf('msp.gouv.qc.ca') !== -1) {
+  if (host.includes('mern.gouv.qc.ca') ||
+    host.includes('msp.gouv.qc.ca')) {
     e.respondWith(networkFirst(e.request, MRNF));
     return;
   }
 
   // Tuiles raster (CARTO, OSM, Stadia) : Cache First avec limite 500 tuiles
-  if (host.indexOf('cartocdn') !== -1 ||
-      host.indexOf('openstreetmap') !== -1 ||
-      host.indexOf('stadiamaps') !== -1) {
+  if (host.includes('cartocdn') ||
+    host.includes('openstreetmap') ||
+    host.includes('stadiamaps')) {
     e.respondWith(tileFirst(e.request));
     return;
   }
 });
 
 // Cache First : sert depuis le cache, tente le réseau si absent
-function cacheFirst(request, cacheName) {
-  return caches.match(request).then(function(cached) {
+async function cacheFirst(request, cacheName) {
+  try {
+    const cached = await caches.match(request);
     if (cached) return cached;
-    return fetch(request).then(function(response) {
-      if (response.ok) {
-        caches.open(cacheName).then(function(c) { c.put(request, response.clone()); });
-      }
-      return response;
-    });
-  });
+
+    const response = await fetch(request);
+    if (response.ok && response.status !== 206) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return new Response('Network error', { status: 408 });
+  }
 }
 
 // Network First : tente le réseau, fallback cache si hors-ligne
-function networkFirst(request, cacheName) {
-  return fetch(request).then(function(response) {
-    if (response.ok) {
-      caches.open(cacheName).then(function(c) { c.put(request, response.clone()); });
+async function networkFirst(request, cacheName) {
+  try {
+    const response = await fetch(request);
+    if (response.ok && response.status !== 206) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
     }
     return response;
-  }).catch(function() {
-    return caches.match(request).then(function(cached) {
-      if (cached) return cached;
-      return new Response(JSON.stringify({ error: 'offline', features: [] }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      });
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    return new Response(JSON.stringify({ error: 'offline', features: [] }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
     });
-  });
+  }
 }
 
 // Tile First : Cache First avec FIFO si limite atteinte
-function tileFirst(request) {
-  return caches.match(request).then(function(cached) {
-    if (cached) return cached;
-    return fetch(request).then(function(response) {
-      if (!response.ok) return response;
-      caches.open(TILES).then(function(cache) {
-        cache.keys().then(function(keys) {
-          if (keys.length >= MAX_TILES) cache.delete(keys[0]);
-          cache.put(request, response.clone());
-        });
-      });
-      return response;
-    }).catch(function() {
-      return new Response('', { status: 503, statusText: 'Offline' });
-    });
-  });
+async function tileFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (!response.ok || response.status === 206) return response;
+
+    const cache = await caches.open(TILES);
+    const keys = await cache.keys();
+    if (keys.length >= MAX_TILES) {
+      await cache.delete(keys[0]);
+    }
+    cache.put(request, response.clone());
+    return response;
+  } catch {
+    return new Response('', { status: 503, statusText: 'Offline' });
+  }
 }

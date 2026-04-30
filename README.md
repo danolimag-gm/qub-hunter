@@ -4,6 +4,9 @@
 
 Qub Hunter affiche les lots du cadastre rénové, zones de chasse, ZECs, pourvoiries et réserves fauniques du Québec sur une carte interactive. Mobile-first, optimisé pour une utilisation hors-ligne sur le terrain.
 
+**Lien du projet :** [https://[VOTRE_NOM_UTILISATEUR].github.io/qub_hunter/](https://[VOTRE_NOM_UTILISATEUR].github.io/qub_hunter/)  
+**Dépôt GitHub :** [https://github.com/[VOTRE_NOM_UTILISATEUR]/qub_hunter](https://github.com/[VOTRE_NOM_UTILISATEUR]/qub_hunter)
+
 ---
 
 ## 🎯 Objectifs du projet
@@ -68,7 +71,7 @@ Qub Hunter affiche les lots du cadastre rénové, zones de chasse, ZECs, pourvoi
 - **API iCherche** (gouvernement du Québec) : géocodage par numéro de lot
 
 ### Hébergement (prévu)
-- **Frontend** : GitHub Pages ou Cloudflare Pages
+- **Frontend** : [GitHub Pages](https://[VOTRE_NOM_UTILISATEUR].github.io/qub_hunter/)
 - **PMTiles** : Cloudflare R2 (10 Go gratuits)
 
 ---

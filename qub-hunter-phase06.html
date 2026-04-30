@@ -1,0 +1,3647 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2a3826" />
+  <title>Qub Hunter — Carte de chasse du Québec</title>
+
+  <link rel="manifest" href="./manifest.json" />
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pmtiles@3.2.0/dist/pmtiles.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inria+Sans:wght@300;400;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --forest-deep: #1d2818;
+      --forest: #2a3826;
+      --forest-mid: #3d5234;
+      --moss: #6b7d4a;
+      --bark: #4a3829;
+      --bark-light: #7a5d44;
+      --paper: #f0e8d6;
+      --paper-warm: #e8dcc0;
+      --paper-aged: #d4c5a0;
+      --ink: #1a1410;
+      --rust: #a04a28;
+      --blood: #6b1a14;
+      --gold: #b88a3e;
+      --line: #8a7a5a;
+      --zone-blue: #2a5c8a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inria Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      background: var(--paper-warm);
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      padding: env(safe-area-inset-top) 16px 12px;
+      background: linear-gradient(to bottom, rgba(29, 40, 24, 0.96) 0%, rgba(29, 40, 24, 0.88) 70%, transparent 100%);
+      pointer-events: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .header>* {
+      pointer-events: auto;
+    }
+
+    .brand {
+      padding-top: 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 26px;
+      color: var(--paper);
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+
+    .brand-mark::first-letter {
+      color: var(--gold);
+    }
+
+    .brand-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--paper-aged);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      padding-bottom: 2px;
+    }
+
+    /* ── INDICATEUR RÉSEAU ── */
+    .net-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--paper-aged);
+      padding-bottom: 2px;
+    }
+
+    .net-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--moss);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .net-badge.offline .net-dot {
+      background: var(--gold);
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+
+    .net-badge.offline .net-label {
+      color: var(--gold);
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.35;
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid rgba(212, 197, 160, 0.3);
+      background: rgba(29, 40, 24, 0.85);
+      color: var(--paper);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+      background: var(--gold);
+      color: var(--forest-deep);
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ── SEARCH OVERLAY ── */
+    .search-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      padding: calc(env(safe-area-inset-top) + 10px) 14px 14px;
+      background: rgba(29, 40, 24, 0.97);
+      backdrop-filter: blur(10px);
+      transform: translateY(-110%);
+      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.18, 1);
+    }
+
+    .search-overlay.open {
+      transform: translateY(0);
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      height: 44px;
+      padding: 0 14px;
+      background: rgba(240, 232, 214, 0.12);
+      border: 1px solid rgba(212, 197, 160, 0.35);
+      border-radius: 6px;
+      color: var(--paper);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: rgba(212, 197, 160, 0.5);
+    }
+
+    .search-input:focus {
+      border-color: var(--gold);
+      background: rgba(240, 232, 214, 0.18);
+    }
+
+    .search-close {
+      width: 44px;
+      height: 44px;
+      background: transparent;
+      border: 1px solid rgba(212, 197, 160, 0.25);
+      border-radius: 6px;
+      color: var(--paper-aged);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .search-close:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .search-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: rgba(212, 197, 160, 0.5);
+      margin-top: 8px;
+      letter-spacing: 0.08em;
+    }
+
+    .search-results {
+      margin-top: 10px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .search-result-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(212, 197, 160, 0.12);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .search-result-item:hover,
+    .search-result-item:active {
+      background: rgba(240, 232, 214, 0.08);
+    }
+
+    .search-result-item .r-type {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .search-result-item .r-name {
+      font-size: 14px;
+      color: var(--paper);
+      margin-top: 2px;
+    }
+
+    .search-result-item .r-coord {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: rgba(212, 197, 160, 0.5);
+      margin-top: 2px;
+    }
+
+    .search-empty {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: rgba(212, 197, 160, 0.4);
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    /* ── RÉSULTAT CADASTRAL ── */
+    .search-result-item.is-cadastre {
+      border-left: 2px solid var(--gold);
+      padding-left: 10px;
+    }
+
+    .r-lot {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--gold);
+      font-weight: 600;
+      margin-top: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .r-muni {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: rgba(212, 197, 160, 0.55);
+      margin-top: 3px;
+    }
+
+    .r-noloc {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: rgba(212, 197, 160, 0.38);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .r-links {
+      display: flex;
+      gap: 6px;
+      margin-top: 7px;
+    }
+
+    .r-link {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(212, 197, 160, 0.6);
+      border: 1px solid rgba(212, 197, 160, 0.25);
+      padding: 3px 8px;
+      border-radius: 3px;
+      transition: all 0.12s;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .r-link:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* ── POPUP CADASTRE ── */
+    .popup-cad-links {
+      display: flex;
+      gap: 7px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .popup-cad-link {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--zone-blue);
+      text-decoration: none;
+      border: 1px solid var(--zone-blue);
+      padding: 5px 9px;
+      border-radius: 3px;
+      display: inline-block;
+      transition: all 0.12s;
+    }
+
+    .popup-cad-link:hover {
+      background: var(--zone-blue);
+      color: var(--paper);
+    }
+
+    .popup-cad-lotno {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--forest);
+      background: var(--paper-warm);
+      border: 1px solid var(--paper-aged);
+      border-radius: 3px;
+      padding: 4px 10px;
+      margin-top: 6px;
+      display: inline-block;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      user-select: all;
+    }
+
+    .popup-cad-copy-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      color: var(--bark-light);
+      margin-top: 3px;
+    }
+
+    /* ── PANEL ── */
+    .panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      background: var(--paper);
+      border-top: 1px solid var(--line);
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -12px 40px rgba(29, 40, 24, 0.25), 0 -2px 0 rgba(184, 138, 62, 0.15);
+      padding: 6px 0 calc(env(safe-area-inset-bottom) + 12px);
+      transform: translateY(calc(100% - 92px));
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0.18, 1);
+    }
+
+    .panel.open {
+      transform: translateY(0);
+    }
+
+    .panel-handle {
+      width: 100%;
+      padding: 8px 16px 4px;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .panel-handle::before {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 4px;
+      margin: 0 auto;
+      background: var(--paper-aged);
+      border-radius: 2px;
+    }
+
+    .panel-summary {
+      padding: 8px 20px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px dashed var(--paper-aged);
+    }
+
+    .panel-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--forest);
+    }
+
+    .panel-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--bark-light);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .panel-content {
+      padding: 14px 20px 0;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .layer-section {
+      margin-bottom: 20px;
+    }
+
+    .section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--bark);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--paper-aged);
+    }
+
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(212, 197, 160, 0.4);
+    }
+
+    .layer-row:last-child {
+      border-bottom: none;
+    }
+
+    .layer-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .layer-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .layer-name {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    .layer-desc {
+      font-size: 11px;
+      color: var(--bark-light);
+      margin-top: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--paper-aged);
+      border-radius: 26px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 3px;
+      top: 3px;
+      background: var(--paper);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s;
+    }
+
+    .toggle input:checked+.toggle-slider {
+      background: var(--forest-mid);
+    }
+
+    .toggle input:checked+.toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    /* ── SECTION HORS-LIGNE ── */
+    .offline-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(212, 197, 160, 0.3);
+    }
+
+    .offline-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .offline-status {
+      width: 18px;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      flex-shrink: 0;
+      color: var(--paper-aged);
+    }
+
+    .offline-status.cached {
+      color: var(--moss);
+    }
+
+    .offline-status.missing {
+      color: var(--bark-light);
+    }
+
+    .offline-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      margin-top: 4px;
+      border-top: 1px dashed var(--paper-aged);
+    }
+
+    .offline-size {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--bark-light);
+    }
+
+    /* ── POPUPS ── */
+    .maplibregl-popup-content {
+      background: var(--paper) !important;
+      border: 1px solid var(--bark-light) !important;
+      border-radius: 4px !important;
+      padding: 14px 16px !important;
+      font-family: 'Inria Sans', sans-serif !important;
+      box-shadow: 0 6px 24px rgba(29, 40, 24, 0.3) !important;
+      max-width: 280px !important;
+    }
+
+    .popup-type {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--rust);
+      margin-bottom: 4px;
+    }
+
+    .popup-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--forest-deep);
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .popup-row {
+      font-size: 12px;
+      color: var(--ink);
+      margin: 3px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .popup-row .label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--bark-light);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── POPUP RÈGLEMENTS ── */
+    .popup-reglements {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--paper-aged);
+    }
+
+    .regl-header {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--bark-light);
+      margin-bottom: 6px;
+    }
+
+    .regl-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin: 5px 0;
+    }
+
+    .regl-emoji {
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+
+    .regl-nom {
+      flex: 1;
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    .regl-saison {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--bark-light);
+      white-space: nowrap;
+    }
+
+    .regl-disclaimer {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--bark-light);
+      margin-top: 8px;
+      opacity: 0.75;
+    }
+
+    .regl-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 6px;
+    }
+
+    .badge-vert {
+      background: rgba(107, 125, 74, 0.15);
+      color: var(--moss);
+    }
+
+    .badge-orange {
+      background: rgba(184, 138, 62, 0.15);
+      color: var(--gold);
+    }
+
+    .badge-rouge {
+      background: rgba(107, 26, 20, 0.15);
+      color: var(--blood);
+    }
+
+    .badge-gris {
+      background: rgba(122, 93, 68, 0.12);
+      color: var(--bark-light);
+    }
+
+    .regl-detail {
+      font-size: 11px;
+      color: var(--bark);
+      line-height: 1.5;
+      margin-top: 2px;
+    }
+
+    .popup-mrnf-link {
+      display: block;
+      margin-top: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--zone-blue);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+    }
+
+    .popup-mrnf-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ── FABs ── */
+    .geo-fab {
+      position: absolute;
+      right: 14px;
+      bottom: 110px;
+      z-index: 9;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 1px solid var(--bark-light);
+      background: var(--paper);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(29, 40, 24, 0.25);
+      transition: all 0.15s;
+    }
+
+    .geo-fab:active {
+      transform: scale(0.92);
+      background: var(--gold);
+    }
+
+    .geo-fab svg {
+      width: 22px;
+      height: 22px;
+      color: var(--forest-deep);
+    }
+
+    /* ── WAYPOINT FAB ── */
+    .wp-fab {
+      position: absolute;
+      right: 14px;
+      bottom: 170px;
+      z-index: 9;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold);
+      background: var(--forest-deep);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(29, 40, 24, 0.35);
+      transition: all 0.15s;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .wp-fab:active {
+      transform: scale(0.92);
+      background: var(--gold);
+    }
+
+    /* ── MAP WAYPOINT MARKERS ── */
+    .map-wp-marker {
+      width: 34px;
+      height: 34px;
+      background: var(--forest-deep);
+      border: 2.5px solid var(--gold);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+      transition: transform 0.12s;
+    }
+
+    .map-wp-marker:active {
+      transform: rotate(-45deg) scale(0.88);
+    }
+
+    .map-wp-marker>span {
+      transform: rotate(45deg);
+      font-size: 14px;
+      line-height: 1;
+      display: block;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom) + 104px);
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      z-index: 200;
+      background: var(--forest-deep);
+      color: var(--paper);
+      border: 1px solid var(--gold);
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      padding: 10px 18px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s, transform 0.22s;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── MARKER CREATION MODAL ── */
+    .marker-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(29, 40, 24, 0.82);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .marker-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--paper);
+      border-radius: 18px 18px 0 0;
+      padding: 12px 20px calc(env(safe-area-inset-bottom) + 24px);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.18, 1);
+    }
+
+    .marker-modal.open .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--paper-aged);
+      border-radius: 2px;
+      margin: 0 auto 14px;
+    }
+
+    .modal-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--forest);
+      margin-bottom: 3px;
+    }
+
+    .modal-coords {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--bark-light);
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .modal-section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--bark);
+      margin-bottom: 9px;
+    }
+
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      max-height: 170px;
+      overflow-y: auto;
+      margin-bottom: 14px;
+    }
+
+    .cat-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 4px;
+      border-radius: 8px;
+      border: 1.5px solid var(--paper-aged);
+      background: var(--paper-warm);
+      cursor: pointer;
+      transition: all 0.14s;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cat-btn.selected {
+      border-color: var(--forest-mid);
+      background: rgba(61, 82, 52, 0.12);
+    }
+
+    .cat-btn .cat-emoji {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .cat-btn .cat-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--bark);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--paper-aged);
+      background: var(--paper-warm);
+      border-radius: 6px;
+      font-family: 'Inria Sans', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      outline: none;
+      margin-bottom: 9px;
+      -webkit-appearance: none;
+    }
+
+    .modal-input:focus {
+      border-color: var(--forest-mid);
+    }
+
+    .modal-input::placeholder {
+      color: var(--bark-light);
+      font-style: italic;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 13px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.14s;
+    }
+
+    .modal-btn.primary {
+      background: var(--forest);
+      color: var(--paper);
+    }
+
+    .modal-btn.primary:active {
+      background: var(--forest-mid);
+    }
+
+    .modal-btn.secondary {
+      background: var(--paper-aged);
+      color: var(--bark);
+    }
+
+    .modal-btn.secondary:active {
+      background: var(--line);
+      color: var(--paper);
+    }
+
+    /* ── WAYPOINT LIST IN PANEL ── */
+    .wp-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(212, 197, 160, 0.4);
+    }
+
+    .wp-item:last-child {
+      border-bottom: none;
+    }
+
+    .wp-cat-emoji {
+      font-size: 18px;
+      flex-shrink: 0;
+      width: 24px;
+      text-align: center;
+    }
+
+    .wp-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .wp-name {
+      font-size: 13px;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .wp-coord {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--bark-light);
+      margin-top: 1px;
+    }
+
+    .wp-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .wp-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid var(--paper-aged);
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      display: grid;
+      place-items: center;
+      transition: all 0.12s;
+    }
+
+    .wp-btn.goto {
+      color: var(--forest-mid);
+    }
+
+    .wp-btn.del {
+      color: var(--rust);
+    }
+
+    .wp-btn:active {
+      background: var(--paper-aged);
+    }
+
+    .wp-footer {
+      display: flex;
+      gap: 8px;
+      padding-top: 10px;
+      margin-top: 6px;
+      border-top: 1px dashed var(--paper-aged);
+    }
+
+    .wp-footer-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border-radius: 4px;
+      border: 1px solid var(--paper-aged);
+      background: transparent;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--bark);
+      transition: all 0.12s;
+    }
+
+    .wp-footer-btn.export {
+      border-color: var(--moss);
+      color: var(--moss);
+    }
+
+    .wp-footer-btn.clear {
+      border-color: var(--rust);
+      color: var(--rust);
+    }
+
+    .wp-footer-btn:active {
+      opacity: 0.7;
+    }
+
+    .wp-empty {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--bark-light);
+      line-height: 1.7;
+      padding: 4px 0 8px;
+    }
+
+    /* ── COORDINATES ── */
+    .compass-readout {
+      position: absolute;
+      right: 14px;
+      top: calc(env(safe-area-inset-top) + 64px);
+      z-index: 8;
+      background: rgba(29, 40, 24, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: var(--paper);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      border: 1px solid rgba(212, 197, 160, 0.2);
+      pointer-events: none;
+      line-height: 1.5;
+    }
+
+    .compass-readout .label {
+      color: var(--paper-aged);
+      margin-right: 6px;
+    }
+
+    /* ── LEGEND ── */
+    .legend {
+      position: absolute;
+      left: 14px;
+      bottom: 110px;
+      z-index: 8;
+      background: rgba(240, 232, 214, 0.96);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--paper-aged);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--ink);
+      box-shadow: 0 4px 14px rgba(29, 40, 24, 0.15);
+      max-width: 200px;
+      display: none;
+    }
+
+    .legend.visible {
+      display: block;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 3px 0;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── LOADING / ERROR ── */
+    .loading-badge {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 64px);
+      left: 14px;
+      z-index: 8;
+      background: rgba(29, 40, 24, 0.9);
+      color: var(--gold);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.4s;
+    }
+
+    .loading-badge.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(184, 138, 62, 0.3);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .error-box {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 70px);
+      left: 14px;
+      right: 14px;
+      z-index: 50;
+      background: var(--blood);
+      color: var(--paper);
+      padding: 12px 14px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+
+    .error-box.visible {
+      display: block;
+    }
+
+    .error-box .err-title {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 10px;
+      margin-bottom: 4px;
+      opacity: 0.85;
+    }
+
+    .error-box .err-close {
+      float: right;
+      background: transparent;
+      border: 1px solid rgba(240, 232, 214, 0.3);
+      color: var(--paper);
+      padding: 2px 6px;
+      font-size: 10px;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    /* ── SOURCE SWITCHER ── */
+    .source-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      padding: 6px 10px;
+      border: 1px solid var(--bark-light);
+      background: var(--paper);
+      color: var(--bark);
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+    }
+
+    /* ── LONG-PRESS RIPPLE ── */
+    @keyframes lp-ripple {
+      0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0.7;
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .lp-ripple {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      pointer-events: none;
+      z-index: 90;
+      animation: lp-ripple 0.6s ease-out forwards;
+    }
+
+    /* ── DESKTOP ── */
+    @media (min-width: 900px) {
+      .panel {
+        width: 380px;
+        right: auto;
+        border-radius: 0 8px 8px 0;
+        border-right: 1px solid var(--line);
+        border-top: 1px solid var(--line);
+        transform: translateX(0) !important;
+        bottom: 0;
+        top: 0;
+        padding-top: calc(env(safe-area-inset-top) + 80px);
+      }
+
+      .panel-handle {
+        display: none;
+      }
+
+      .panel-content {
+        max-height: none;
+        flex: 1;
+      }
+
+      .header {
+        left: 380px;
+      }
+
+      .geo-fab {
+        bottom: 30px;
+      }
+
+      .wp-fab {
+        bottom: 90px;
+      }
+
+      .legend {
+        bottom: 30px;
+        left: 394px;
+      }
+
+      .loading-badge {
+        left: 394px;
+      }
+
+      .search-overlay {
+        left: 380px;
+      }
+    }
+
+    /* ── ZONE 300M ── */
+    .zone300-note {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--bark-light);
+      margin-top: 6px;
+      line-height: 1.6;
+      padding: 6px 0 2px;
+    }
+
+    /* ── RÈGLES MUNICIPALES ── */
+    .mun-rule {
+      background: rgba(160, 74, 40, 0.07);
+      border: 1px solid rgba(160, 74, 40, 0.25);
+      border-radius: 4px;
+      padding: 7px 10px;
+      margin: 5px 0;
+    }
+
+    .mun-rule-nom {
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .mun-rule-dist {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--rust);
+      margin-top: 3px;
+    }
+
+    .mun-rule-note {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      color: var(--bark-light);
+      margin-top: 2px;
+    }
+
+    /* ── TERRITOIRES AUTOCHTONES ── */
+    .autochtone-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(107, 26, 20, 0.1);
+      border: 1px solid rgba(107, 26, 20, 0.3);
+      color: var(--blood);
+      border-radius: 3px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 6px 0;
+    }
+
+    /* ── SAISONS DÉTAILLÉES (popup zone) ── */
+    .saison-bloc {
+      padding-left: 24px;
+      margin-bottom: 8px;
+    }
+
+    .saison-row {
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
+      margin: 2px 0;
+    }
+
+    .saison-mode {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      color: var(--bark-light);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      width: 52px;
+      flex-shrink: 0;
+    }
+
+    .saison-dates {
+      font-size: 11px;
+      color: var(--ink);
+    }
+
+    .saison-alerte {
+      background: rgba(184, 138, 62, 0.12);
+      border: 1px solid rgba(184, 138, 62, 0.35);
+      border-radius: 3px;
+      padding: 5px 8px;
+      font-size: 10px;
+      color: var(--gold);
+      margin: 4px 0 6px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="map"></div>
+
+  <!-- SEARCH OVERLAY -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-row">
+      <input class="search-input" id="searchInput" type="text" placeholder="Lot (ex: 1234567), territoire, coordonnées…"
+        autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button class="search-close" id="searchClose">×</button>
+    </div>
+    <div class="search-hint">Lot: 5778374 · Multi-lots: 5778374,5854526 · Territoire: ZEC Bessonne · GPS:
+      47.6,-73.4<br /><small>✓ Les lots des zones 02-29 sont maintenant en local (recherche instantanée)</small></div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">Qub Hunter</div>
+      <div class="brand-sub">Phase 05 — Outils terrain</div>
+      <div class="net-badge" id="netBadge">
+        <div class="net-dot"></div>
+        <span class="net-label" id="netLabel">En ligne</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <!-- Partager position -->
+      <button class="icon-btn" id="shareBtn" aria-label="Partager la position">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"></circle>
+          <circle cx="6" cy="12" r="3"></circle>
+          <circle cx="18" cy="19" r="3"></circle>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+        </svg>
+      </button>
+      <!-- Recherche -->
+      <button class="icon-btn" id="searchToggle" aria-label="Rechercher">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="error-box" id="errorBox">
+    <button class="err-close" onclick="document.getElementById('errorBox').classList.remove('visible')">×</button>
+    <div class="err-title">Erreur</div>
+    <div id="errorMsg"></div>
+  </div>
+
+  <div class="loading-badge hidden" id="loadingBadge">
+    <div class="spinner"></div>
+    <span id="loadingMsg">Chargement…</span>
+  </div>
+
+  <div class="compass-readout" id="compass">
+    <div><span class="label">LAT</span><span id="lat">—</span></div>
+    <div><span class="label">LON</span><span id="lon">—</span></div>
+    <div><span class="label">ZOOM</span><span id="zm">—</span></div>
+  </div>
+
+  <div class="legend" id="legend">
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:#7a8a3e;opacity:.6"></div>ZEC
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:#a04a28;opacity:.6"></div>Pourvoirie (DE)
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:#3d5234;opacity:.6"></div>Réserve faunique
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:#b88a3e;opacity:.6"></div>Parc national
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:#2a5c8a;opacity:.35;border:1px solid #2a5c8a"></div>Zone de chasse
+    </div>
+    <div class="legend-row" id="legend-cadastre" style="display:none">
+      <div class="legend-swatch" style="background:transparent;border:1px solid #8a7a5a"></div>Lots cadastraux
+    </div>
+  </div>
+
+  <!-- FABs -->
+  <button class="wp-fab" id="wpFab" aria-label="Ajouter un repère">📍</button>
+  <button class="geo-fab" id="geoFab" aria-label="Ma position">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+    </svg>
+  </button>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- MARKER CREATION MODAL -->
+  <div class="marker-modal" id="markerModal">
+    <div class="modal-card">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Nouveau repère</div>
+      <div class="modal-coords" id="modalCoords">—</div>
+
+      <div class="modal-section-label">Catégorie</div>
+      <div class="cat-grid">
+        <button class="cat-btn selected" data-cat="affut">
+          <span class="cat-emoji">🎯</span>
+          <span class="cat-name">Affût</span>
+        </button>
+        <button class="cat-btn" data-cat="passage">
+          <span class="cat-emoji">🐾</span>
+          <span class="cat-name">Passage</span>
+        </button>
+        <button class="cat-btn" data-cat="trace">
+          <span class="cat-emoji">👣</span>
+          <span class="cat-name">Trace</span>
+        </button>
+        <button class="cat-btn" data-cat="tir">
+          <span class="cat-emoji">🏹</span>
+          <span class="cat-name">Tir</span>
+        </button>
+        <button class="cat-btn" data-cat="ours">
+          <span class="cat-emoji">🐻</span>
+          <span class="cat-name">Ours</span>
+        </button>
+        <button class="cat-btn" data-cat="orignal">
+          <span class="cat-emoji">🫎</span>
+          <span class="cat-name">Orignal</span>
+        </button>
+        <button class="cat-btn" data-cat="sanglier">
+          <span class="cat-emoji">🐗</span>
+          <span class="cat-name">Sanglier</span>
+        </button>
+        <button class="cat-btn" data-cat="dindon">
+          <span class="cat-emoji">🦃</span>
+          <span class="cat-name">Dindon</span>
+        </button>
+        <button class="cat-btn" data-cat="cerf">
+          <span class="cat-emoji">🦌</span>
+          <span class="cat-name">Cerf</span>
+        </button>
+        <button class="cat-btn" data-cat="cache">
+          <span class="cat-emoji">🎒</span>
+          <span class="cat-name">Cache</span>
+        </button>
+        <button class="cat-btn" data-cat="tente">
+          <span class="cat-emoji">⛺</span>
+          <span class="cat-name">Tente</span>
+        </button>
+        <button class="cat-btn" data-cat="chalet">
+          <span class="cat-emoji">🏠</span>
+          <span class="cat-name">Chalet</span>
+        </button>
+        <button class="cat-btn" data-cat="roulotte">
+          <span class="cat-emoji">🚐</span>
+          <span class="cat-name">Roulotte</span>
+        </button>
+        <button class="cat-btn" data-cat="eau">
+          <span class="cat-emoji">💧</span>
+          <span class="cat-name">Eau</span>
+        </button>
+        <button class="cat-btn" data-cat="acces">
+          <span class="cat-emoji">🚘</span>
+          <span class="cat-name">Véhicule</span>
+        </button>
+        <button class="cat-btn" data-cat="sentier">
+          <span class="cat-emoji">🥾</span>
+          <span class="cat-name">Sentier</span>
+        </button>
+        <button class="cat-btn" data-cat="danger">
+          <span class="cat-emoji">⚠️</span>
+          <span class="cat-name">Danger</span>
+        </button>
+      </div>
+
+      <div class="modal-section-label">Nom du repère</div>
+      <input class="modal-input" id="markerName" type="text" placeholder="Ex : Affût du ruisseau nord…"
+        autocomplete="off" maxlength="60" />
+
+      <div class="modal-section-label">Note (optionnel)</div>
+      <input class="modal-input" id="markerNote" type="text" placeholder="Trace fraîche, cache visible…"
+        autocomplete="off" maxlength="120" />
+
+      <div class="modal-footer">
+        <button class="modal-btn secondary" id="modalCancel">Annuler</button>
+        <button class="modal-btn primary" id="modalConfirm">Placer le repère</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <aside class="panel" id="panel">
+    <div class="panel-handle" id="panelHandle"></div>
+    <div class="panel-summary">
+      <div>
+        <div class="panel-title">Couches du territoire</div>
+        <div class="panel-meta" id="panelMeta">Glissez pour ouvrir</div>
+      </div>
+      <button class="icon-btn" id="panelToggle"
+        style="background:transparent;color:var(--forest);border-color:var(--paper-aged)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </button>
+    </div>
+    <div class="panel-content">
+
+      <!-- MES REPÈRES -->
+      <div class="layer-section">
+        <div class="section-label">Mes repères</div>
+        <div id="waypointList">
+          <div class="wp-empty">Aucun repère.<br>Touchez 📍 ou faites un appui long sur la carte.</div>
+        </div>
+        <div class="wp-footer">
+          <button class="wp-footer-btn export" id="exportGpxBtn">↓ GPX</button>
+          <button class="wp-footer-btn export" id="exportKmlBtn">↓ KML</button>
+          <button class="wp-footer-btn clear" id="clearWaypointsBtn">✕ Tout</button>
+        </div>
+      </div>
+
+      <div class="layer-section">
+        <div class="section-label">Fond de carte</div>
+        <div class="layer-row">
+          <div class="layer-info">
+            <div class="layer-name">Source actuelle</div>
+            <div class="layer-desc" id="curSource">—</div>
+          </div>
+          <button class="source-btn" id="switchSource">Changer</button>
+        </div>
+      </div>
+
+      <div class="layer-section">
+        <div class="section-label">Zones de chasse</div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#2a5c8a"></div>
+          <div class="layer-info">
+            <div class="layer-name">Zones 1–29</div>
+            <div class="layer-desc" id="desc-zones">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="zones" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div
+          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:4px 0 0">
+          Pour les vraies zones MRNF :<br>
+          <code style="color:var(--moss)">python pipeline/download_zones.py</code>
+        </div>
+      </div>
+
+      <div class="layer-section">
+        <div class="section-label">Territoires fauniques</div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#7a8a3e"></div>
+          <div class="layer-info">
+            <div class="layer-name">ZEC</div>
+            <div class="layer-desc" id="desc-zec">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="zec" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#a04a28"></div>
+          <div class="layer-info">
+            <div class="layer-name">Pourvoiries (DE)</div>
+            <div class="layer-desc" id="desc-pourvoirie">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="pourvoirie" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#3d5234"></div>
+          <div class="layer-info">
+            <div class="layer-name">Réserves fauniques</div>
+            <div class="layer-desc" id="desc-reserve">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="reserve" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#b88a3e"></div>
+          <div class="layer-info">
+            <div class="layer-name">Parcs nationaux</div>
+            <div class="layer-desc" id="desc-parc">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="parc" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="layer-section">
+        <div class="section-label">Cadastre</div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:transparent;border:1px solid var(--line)"></div>
+          <div class="layer-info">
+            <div class="layer-name">Lots cadastraux</div>
+            <div class="layer-desc" id="desc-cadastre">disponible zoom ≥ 12</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="cadastre" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div
+          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
+          PMTiles local requis.<br>
+          <code style="color:var(--moss)">python pipeline/generate_pmtiles.py --region mauricie</code>
+        </div>
+      </div>
+
+      <!-- RÉGLEMENTATION -->
+      <div class="layer-section">
+        <div class="section-label">Réglementation</div>
+
+        <!-- Zone 300m GPS -->
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(160,74,40,0.2);border:2px dashed #a04a28"></div>
+          <div class="layer-info">
+            <div class="layer-name">Zone 300 m (ma position)</div>
+            <div class="layer-desc">Cercle autour de votre GPS</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="toggle300m"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="zone300-note">
+          ⚖ Loi provinciale : armes à feu interdites à moins de <strong>300 m</strong> de toute résidence ou bâtiment
+          occupé (L.R.Q., c. C-61.1, art. 69). Activez la géolocalisation 📍 pour afficher le cercle.
+        </div>
+
+        <!-- Règles municipales -->
+        <div
+          style="margin-top:12px;margin-bottom:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.14em;color:var(--bark)">
+          Restrictions municipales connues</div>
+        <div class="mun-rule">
+          <div class="mun-rule-nom">Lévis</div>
+          <div class="mun-rule-dist">🚫 3 000 m des habitations</div>
+          <div class="mun-rule-note">Secteur urbain · beaucoup plus restrictif que la règle provinciale</div>
+        </div>
+        <div class="mun-rule">
+          <div class="mun-rule-nom">Ville de Québec &nbsp;·&nbsp; Sherbrooke &nbsp;·&nbsp; Neuville</div>
+          <div class="mun-rule-dist">⚠ 150 m des habitations</div>
+          <div class="mun-rule-note">Plus restrictif que les 300 m provinciaux</div>
+        </div>
+        <div class="mun-rule">
+          <div class="mun-rule-nom">Mirabel</div>
+          <div class="mun-rule-dist">ℹ 300 m des habitations</div>
+          <div class="mun-rule-note">Identique à la règle provinciale</div>
+        </div>
+        <div
+          style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--bark-light);margin-top:7px;line-height:1.6">
+          Vérifiez toujours les règlements de votre municipalité — cette liste n'est pas exhaustive.
+        </div>
+        <div style="margin-top:8px">
+          <a href="https://www.quebec.ca/tourisme-loisirs-sport/chasse/regles-territoires" target="_blank"
+            rel="noopener"
+            style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--zone-blue);text-decoration:none;letter-spacing:0.06em">Règles
+            officielles MRNF →</a>
+        </div>
+      </div>
+
+      <!-- TERRITOIRES AUTOCHTONES -->
+      <div class="layer-section">
+        <div class="section-label">Territoires autochtones</div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(107,26,20,0.2);border:2px dashed #6b1a14"></div>
+          <div class="layer-info">
+            <div class="layer-name">Nations du Québec</div>
+            <div class="layer-desc" id="desc-autochtone">9 nations · territoires indicatifs</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="autochtone" checked><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div
+          style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--bark-light);line-height:1.65;padding:7px 0 0">
+          Territoires ancestraux approximatifs (non-cédés). Les droits de chasse autochtones sont constitutionnellement
+          protégés (art. 35, 1982). Consultez les autorités locales avant de chasser.<br>
+          <a href="https://www.rcaanc-cirnac.gc.ca/fra/1100100013791/1535470872302" target="_blank" rel="noopener"
+            style="color:var(--zone-blue);text-decoration:none;">En savoir plus →</a>
+        </div>
+      </div>
+
+      <div class="layer-section">
+        <div class="section-label">Données hors-ligne</div>
+        <div id="offlineRows">
+          <div class="offline-row">
+            <div class="offline-status missing" id="os-zones">◌</div>
+            <div class="layer-name">Zones de chasse</div>
+          </div>
+          <div class="offline-row">
+            <div class="offline-status missing" id="os-zec">◌</div>
+            <div class="layer-name">ZEC</div>
+          </div>
+          <div class="offline-row">
+            <div class="offline-status missing" id="os-pourvoirie">◌</div>
+            <div class="layer-name">Pourvoiries (DE)</div>
+          </div>
+          <div class="offline-row">
+            <div class="offline-status missing" id="os-reserve">◌</div>
+            <div class="layer-name">Réserves fauniques</div>
+          </div>
+          <div class="offline-row">
+            <div class="offline-status missing" id="os-parc">◌</div>
+            <div class="layer-name">Parcs nationaux</div>
+          </div>
+        </div>
+        <div class="offline-footer">
+          <span class="offline-size" id="cacheSize">Calcul…</span>
+          <button class="source-btn" id="clearCacheBtn">Vider le cache</button>
+        </div>
+      </div>
+
+      <div class="layer-section">
+        <div class="section-label">Source des données</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark);line-height:1.7">
+          MRNF — TRQ (ArcGIS REST)<br>
+          Saisons 2025 : règlement MRNF 2024-2026<br>
+          Territoires autochtones : polygones indicatifs<br>
+          Règlement officiel : <a href="https://www.mrnf.gouv.qc.ca/faune/chasse/" target="_blank" rel="noopener"
+            style="color:var(--zone-blue)">mrnf.gouv.qc.ca</a><br>
+          <a href="https://cdn-contenu.quebec.ca/cdn-contenu/chasse/Documents/regles-chasse-2024-2026.pdf"
+            target="_blank" rel="noopener" style="color:var(--zone-blue)">Règlement PDF 2024-2026 →</a>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var $ = function (id) { return document.getElementById(id); };
+
+      // ── SERVICE WORKER ──────────────────────────────────────────────────────
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function () { });
+      }
+
+      // ── RÉSEAU ──────────────────────────────────────────────────────────────
+      function updateNetworkStatus() {
+        var online = navigator.onLine;
+        var badge = $('netBadge'), label = $('netLabel');
+        if (!badge || !label) return;
+        badge.classList.toggle('offline', !online);
+        label.textContent = online ? 'En ligne' : 'Hors ligne';
+      }
+      window.addEventListener('online', updateNetworkStatus);
+      window.addEventListener('offline', updateNetworkStatus);
+      updateNetworkStatus();
+
+      // ── CACHE STATUS ────────────────────────────────────────────────────────
+      var LAYER_PATTERNS = { zones: 'ZoneChasse', zec: '/16/query', pourvoirie: '/8/query', reserve: '/11/query', parc: '/5/query' };
+
+      function updateOfflinePanel() {
+        if (!('caches' in window)) { $('cacheSize').textContent = 'Cache API non disponible'; return; }
+        caches.open('qub-hunter-mrnf-v1').then(function (cache) {
+          cache.keys().then(function (keys) {
+            var urls = keys.map(function (r) { return r.url; });
+            Object.keys(LAYER_PATTERNS).forEach(function (key) {
+              var cached = urls.some(function (u) { return u.indexOf(LAYER_PATTERNS[key]) !== -1; });
+              var el = $('os-' + key);
+              if (!el) return;
+              el.textContent = cached ? '✓' : '◌';
+              el.className = 'offline-status ' + (cached ? 'cached' : 'missing');
+            });
+          });
+        }).catch(function () { });
+        if (navigator.storage && navigator.storage.estimate) {
+          navigator.storage.estimate().then(function (est) {
+            var used = est.usage || 0;
+            var el = $('cacheSize'); if (!el) return;
+            el.textContent = used < 1048576 ? Math.round(used / 1024) + ' Ko utilisés' : (used / 1048576).toFixed(1) + ' Mo utilisés';
+          }).catch(function () { var el = $('cacheSize'); if (el) el.textContent = '—'; });
+        }
+      }
+
+      $('clearCacheBtn').addEventListener('click', function () {
+        if (!('caches' in window)) return;
+        caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).then(updateOfflinePanel);
+      });
+
+      // ── ERREURS / LOADING ───────────────────────────────────────────────────
+      function showError(msg) { var em = $('errorMsg'); if (em) em.textContent = msg; $('errorBox').classList.add('visible'); }
+      var loadingCount = 0;
+      function startLoading(msg) { loadingCount++; $('loadingBadge').classList.remove('hidden'); if (msg) $('loadingMsg').textContent = msg; }
+      function stopLoading() { loadingCount = Math.max(0, loadingCount - 1); if (loadingCount === 0) $('loadingBadge').classList.add('hidden'); }
+
+      // ── TOAST ────────────────────────────────────────────────────────────────
+      var toastTimer = null;
+      function showToast(msg) {
+        var t = $('toast'); if (!t) return;
+        t.textContent = msg; t.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove('visible'); }, 2600);
+      }
+
+      // ── RÈGLEMENTS ───────────────────────────────────────────────────────────
+      // ⚠ Espèces chassables par zone (répartition écologique générale)
+      // Dates, quotas et méthodes exactes : consultez le règlement MRNF officiel chaque année
+      var ESPECES_PAR_ZONE = {
+        '1': ['orignal', 'ours'], '2': ['orignal', 'ours'], '3': ['orignal', 'ours'], '4': ['orignal', 'ours'],
+        '5': ['orignal', 'ours', 'cerf'], '6': ['orignal', 'ours', 'cerf'], '7': ['orignal', 'ours', 'cerf'],
+        '8': ['orignal', 'ours', 'cerf', 'dinde'], '9': ['orignal', 'ours', 'cerf', 'dinde'],
+        '10': ['orignal', 'ours', 'cerf', 'dinde'], '11': ['orignal', 'ours', 'cerf', 'dinde'],
+        '12': ['ours', 'cerf', 'dinde'], '13': ['ours', 'cerf', 'dinde'],
+        '14': ['orignal', 'ours'], '15': ['orignal', 'ours'], '16': ['orignal', 'ours'],
+        '17': ['orignal', 'ours'], '18': ['orignal', 'ours'],
+        '19': ['orignal', 'ours', 'caribou'], '20': ['orignal', 'ours', 'caribou'],
+        '21': ['orignal', 'ours'], '22': ['orignal', 'ours'], '23': ['orignal', 'ours'],
+        '24': ['orignal', 'ours'], '25': ['orignal', 'ours'], '26': ['orignal', 'ours'],
+        '27': ['orignal', 'ours'], '28': ['orignal', 'ours'], '29': ['orignal', 'ours']
+      };
+      var ESPECE_INFO = {
+        orignal: { nom: 'Orignal', emoji: '🫎', saison: 'oct–nov (variable)' },
+        cerf: { nom: 'Cerf de Virginie', emoji: '🦌', saison: 'oct–nov (variable)' },
+        ours: { nom: 'Ours noir', emoji: '🐻', saison: 'sep–nov (variable)' },
+        dinde: { nom: 'Dindon sauvage', emoji: '🦃', saison: 'avr–mai (variable)' },
+        caribou: { nom: 'Caribou', emoji: '🦌', saison: 'sur permis spécial' }
+      };
+      var REGLEMENTS_TYPES = {
+        zec: { badge: 'Chasse permise', badgeCls: 'badge-vert', detail: 'Membre ou permis journalier requis · règles selon la zone de gestion' },
+        pourvoirie: { badge: 'Sur invitation', badgeCls: 'badge-gris', detail: 'Réservation auprès du pourvoyeur requise' },
+        reserve: { badge: 'Contingentement', badgeCls: 'badge-orange', detail: 'Permis SÉPAQ requis · quota strict par territoire' },
+        parc: { badge: 'Chasse interdite', badgeCls: 'badge-rouge', detail: 'Parc national — aucune activité de chasse permise' }
+      };
+      var MRNF_URL = 'https://www.mrnf.gouv.qc.ca/faune/chasse/';
+
+      // ── SAISONS 2025 (règlement MRNF 2024-2026) ─────────────────────────────
+      // Source : https://cdn-contenu.quebec.ca/cdn-contenu/chasse/Documents/regles-chasse-2024-2026.pdf
+      var SAISONS_2025 = {
+        orignal: {
+          def: { arc: '1–28 sept.', arba: '4–26 oct.', reg: '11–26 oct.' },
+          alertes: {
+            '26': '⚠ 2025 : femelle interdite sauf dans 6 ZEC désignées (Borgia, Lavigne, Mitchinamecus, Normandie, Petawaga, Windigo)'
+          }
+        },
+        cerf: {
+          def: { arc: '1 sept.–30 nov.', arba: '1 oct.–30 nov.', reg: '1–30 nov.' },
+          courtes: ['8', '9', '10', '11'], // zones à saison régulière raccourcie
+          courtes_reg: '1–15 nov.'
+        },
+        ours: {
+          def: { printemps: '15 mai–14 juin', automne: '15 août–30 nov.' }
+        },
+        dinde: {
+          def: { printemps: '28 avr.–31 mai', automne: '1–31 oct.' }
+        },
+        caribou: {
+          def: { reg: 'Permis spécial · contingentement strict · zones 19-20' }
+        }
+      };
+
+      // ── RÈGLES MUNICIPALES CONNUES ───────────────────────────────────────────
+      var MUNICIPAL_RULES = [
+        { nom: 'Lévis', rayon_m: 3000, dist: '3 000 m', note: 'Secteur urbain · règlement municipal' },
+        { nom: 'Ville de Québec', rayon_m: 150, dist: '150 m', note: 'RVQ-5350 · secteur non agricole' },
+        { nom: 'Sherbrooke', rayon_m: 150, dist: '150 m', note: 'Plus restrictif que la règle provinciale' },
+        { nom: 'Neuville', rayon_m: 150, dist: '150 m', note: 'Règlement municipal 455' },
+        { nom: 'Mirabel', rayon_m: 300, dist: '300 m', note: 'Même distance que la règle provinciale' }
+      ];
+
+      // ── TERRITOIRES AUTOCHTONES (polygones simplifiés — indicatifs) ──────────
+      var TERRITORIES_AUTOCHTONES = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Eeyou Istchee (Territoire cri)',
+              nation: 'Cris / Eeyou',
+              note: '11 communautés · Convention de la Baie-James (1975) · droits de chasse exclusifs sur les terres de catégorie I et II',
+              url: 'https://www.gcc.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-79.5, 49.0], [-76.0, 49.0], [-73.5, 49.5], [-68.5, 50.0],
+                [-66.5, 51.5], [-66.5, 55.5], [-70.0, 57.5], [-76.0, 57.5],
+                [-79.5, 55.5], [-79.5, 49.0]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Nitassinan (Territoire innu)',
+              nation: 'Innus (Montagnais)',
+              note: '9 communautés · Territoire ancestral non cédé sur la Côte-Nord et le Saguenay–Lac-Saint-Jean',
+              url: 'https://www.innu.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-73.0, 49.0], [-68.0, 50.0], [-64.0, 50.5], [-60.0, 52.0],
+                [-60.0, 55.5], [-64.0, 57.0], [-70.0, 57.5], [-73.5, 55.0],
+                [-76.0, 52.0], [-73.0, 49.0]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Nitaskinan (Territoire atikamekw)',
+              nation: 'Atikamekw Nehirowisiw',
+              note: '3 communautés (Wemotaci, Manawan, Opitciwan) · Haute-Mauricie · territoire non cédé officiellement revendiqué',
+              url: 'https://www.cna-atikamekw.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-75.5, 46.8], [-72.5, 46.5], [-71.5, 47.5], [-71.5, 50.0],
+                [-73.5, 50.5], [-76.0, 49.5], [-76.5, 48.0], [-75.5, 46.8]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Territoire algonquin (Anishinaabe)',
+              nation: 'Algonquins / Anishinaabeg',
+              note: '9 communautés au Québec · Outaouais et Abitibi-Témiscamingue · droits ancestraux reconnus par plusieurs ententes',
+              url: 'https://www.algonquinnation.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-79.5, 45.5], [-76.5, 45.0], [-74.5, 46.0], [-74.5, 49.5],
+                [-76.5, 49.5], [-79.5, 49.0], [-79.5, 45.5]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Kanien\'kehá:ka (Territoire mohawk)',
+              nation: 'Mohawks / Kanien\'kehá:ka',
+              note: '3 communautés au Québec : Kahnawà:ke, Akwesasne, Kanesatake · droits ancestraux sur le corridor fluvial',
+              url: 'https://www.kahnawake.com/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-74.8, 45.1], [-73.5, 45.0], [-72.8, 45.4], [-72.8, 46.2],
+                [-74.0, 46.5], [-75.2, 45.9], [-74.8, 45.1]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Ndakinna (Territoire abénaquis)',
+              nation: 'Abénaquis (W8banaki)',
+              note: '2 communautés : Odanak et Wôlinak · Territoire ancestral de la vallée du Saint-Laurent et de l\'Estrie',
+              url: 'https://www.abenakis.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-73.5, 45.2], [-71.0, 45.0], [-70.0, 45.5], [-70.5, 46.8],
+                [-72.5, 47.0], [-73.8, 46.5], [-73.5, 45.2]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Territoire huron-wendat',
+              nation: 'Hurons-Wendat (Wendat)',
+              note: '1 communauté : Wendake (région de Québec) · droits ancestraux reconnus par plusieurs ententes contemporaines',
+              url: 'https://www.wendake.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-72.0, 46.5], [-70.5, 46.5], [-70.0, 47.8], [-71.0, 48.8],
+                [-72.5, 48.2], [-73.0, 47.0], [-72.0, 46.5]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Nunavik (Territoire inuit)',
+              nation: 'Inuits du Nunavik',
+              note: 'Convention de la Baie-James (1975) · droits de chasse sur l\'ensemble du Nunavik (au nord du 55e parallèle)',
+              url: 'https://www.nunavik-tourism.com/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-79.5, 55.5], [-70.0, 57.5], [-64.0, 57.0], [-60.0, 55.5],
+                [-62.0, 62.5], [-66.0, 62.5], [-73.0, 62.5], [-79.5, 62.0],
+                [-79.5, 55.5]
+              ]]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {
+              nom: 'Territoire naskapi',
+              nation: 'Naskapis',
+              note: '1 communauté : Kawawachikamach (près de Schefferville) · Convention du Nord-Est québécois (1978)',
+              url: 'https://www.naskapi.ca/'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-66.5, 55.5], [-63.0, 55.0], [-63.0, 57.0], [-66.5, 57.5], [-66.5, 55.5]
+              ]]
+            }
+          }
+        ]
+      };
+
+      function zoneNumero(props) {
+        var raw = props.NO_ZONE || props.ZONE_NO || props.NOM_ZON || props.NOM || props.NAME || '';
+        var m = String(raw).match(/\d+/); return m ? String(parseInt(m[0], 10)) : null;
+      }
+
+      // ── SAISONS DÉTAILLÉES PAR ESPÈCE ────────────────────────────────────────
+      function getSaisonHTML(espece, zoneNum) {
+        var s = SAISONS_2025[espece]; if (!s) return '';
+        var html = '';
+        if (espece === 'orignal') {
+          var d = s.def;
+          html += '<div class="saison-bloc">';
+          html += '<div class="saison-row"><span class="saison-mode">Arc</span><span class="saison-dates">' + d.arc + '</span></div>';
+          html += '<div class="saison-row"><span class="saison-mode">Arbalète</span><span class="saison-dates">' + d.arba + '</span></div>';
+          html += '<div class="saison-row"><span class="saison-mode">Régulière</span><span class="saison-dates">' + d.reg + '</span></div>';
+          if (zoneNum && s.alertes && s.alertes[zoneNum]) {
+            html += '<div class="saison-alerte">' + s.alertes[zoneNum] + '</div>';
+          }
+          html += '</div>';
+        } else if (espece === 'cerf') {
+          var d = s.def;
+          var reg = (s.courtes && s.courtes.indexOf(zoneNum) !== -1) ? s.courtes_reg : d.reg;
+          html += '<div class="saison-bloc">';
+          html += '<div class="saison-row"><span class="saison-mode">Arc</span><span class="saison-dates">' + d.arc + '</span></div>';
+          html += '<div class="saison-row"><span class="saison-mode">Arbalète</span><span class="saison-dates">' + d.arba + '</span></div>';
+          html += '<div class="saison-row"><span class="saison-mode">Régulière</span><span class="saison-dates">' + reg + '</span></div>';
+          html += '</div>';
+        } else if (espece === 'ours') {
+          var d = s.def;
+          html += '<div class="saison-bloc">';
+          html += '<div class="saison-row"><span class="saison-mode">Printemps</span><span class="saison-dates">' + d.printemps + '</span></div>';
+          html += '<div class="saison-row"><span class="saison-mode">Automne</span><span class="saison-dates">' + d.automne + '</span></div>';
+          html += '</div>';
+        } else if (espece === 'dinde') {
+          var d = s.def;
+          html += '<div class="saison-bloc">';
+          html += '<div class="saison-row"><span class="saison-mode">Printemps</span><span class="saison-dates">' + d.printemps + '</span></div>';
+          html += '<div class="saison-row"><span class="saison-mode">Automne</span><span class="saison-dates">' + d.automne + '</span></div>';
+          html += '</div>';
+        } else if (espece === 'caribou') {
+          var d = s.def;
+          html += '<div class="saison-bloc">';
+          html += '<div class="saison-row"><span class="saison-mode">Saison</span><span class="saison-dates">' + d.reg + '</span></div>';
+          html += '</div>';
+        }
+        return html;
+      }
+
+      function buildPopupHTML(key, nom, isLive, props) {
+        var html = '<div class="popup-type">' + typeLabel(key) + '</div><div class="popup-title">' + nom + '</div>';
+        if (key === 'zones') {
+          var num = zoneNumero(props || {}); var especes = num ? ESPECES_PAR_ZONE[num] : null;
+          html += '<div class="popup-reglements">';
+          if (num) html += '<div class="regl-header" style="margin-bottom:8px">Zone ' + num + ' — Espèces &amp; saisons 2025</div>';
+          if (especes && especes.length > 0) {
+            especes.forEach(function (e) {
+              var info = ESPECE_INFO[e]; if (!info) return;
+              html += '<div class="regl-row" style="margin-bottom:2px"><span class="regl-emoji">' + info.emoji + '</span><span class="regl-nom" style="font-weight:500">' + info.nom + '</span></div>';
+              html += getSaisonHTML(e, num);
+            });
+          } else {
+            html += '<div class="regl-detail">Consultez le règlement MRNF pour les espèces de cette zone.</div>';
+          }
+          html += '<div class="regl-disclaimer">⚠ Dates approximatives 2025 — vérifiez le règlement officiel avant de chasser</div>' +
+            '<a class="popup-mrnf-link" href="' + MRNF_URL + '" target="_blank" rel="noopener">Règlement officiel MRNF →</a></div>';
+        } else {
+          var reg = REGLEMENTS_TYPES[key];
+          if (reg) html += '<div class="popup-reglements"><span class="regl-badge ' + reg.badgeCls + '">' + reg.badge + '</span><div class="regl-detail">' + reg.detail + '</div></div>';
+        }
+        html += '<div class="popup-row" style="margin-top:8px"><span class="label">source</span><span>' + (isLive ? 'MRNF officiel' : 'données démo') + '</span></div>';
+        return html;
+      }
+
+      // ── CATÉGORIES DE WAYPOINTS ──────────────────────────────────────────────
+      var CATEGORIES = {
+        affut: { emoji: '🎯', nom: 'Affût', gpxSym: 'Hunting Area' },
+        passage: { emoji: '🐾', nom: 'Passage', gpxSym: 'Animal Tracks' },
+        trace: { emoji: '👣', nom: 'Trace', gpxSym: 'Animal Tracks' },
+        tir: { emoji: '🏹', nom: 'Tir', gpxSym: 'Hunting Area' },
+        ours: { emoji: '🐻', nom: 'Ours', gpxSym: 'Wild Animal' },
+        orignal: { emoji: '🫎', nom: 'Orignal', gpxSym: 'Wild Animal' },
+        sanglier: { emoji: '🐗', nom: 'Sanglier', gpxSym: 'Wild Animal' },
+        dindon: { emoji: '🦃', nom: 'Dindon', gpxSym: 'Wild Animal' },
+        cerf: { emoji: '🦌', nom: 'Cerf', gpxSym: 'Wild Animal' },
+        cache: { emoji: '🎒', nom: 'Cache', gpxSym: 'Campground' },
+        tente: { emoji: '⛺', nom: 'Tente', gpxSym: 'Campground' },
+        chalet: { emoji: '🏠', nom: 'Chalet', gpxSym: 'Residence' },
+        roulotte: { emoji: '🚐', nom: 'Roulotte', gpxSym: 'Campground' },
+        eau: { emoji: '💧', nom: 'Point d\'eau', gpxSym: 'Water Source' },
+        acces: { emoji: '🚘', nom: 'Accès véhicule', gpxSym: 'Parking Area' },
+        sentier: { emoji: '🥾', nom: 'Accès sentier', gpxSym: 'Trail Head' },
+        danger: { emoji: '⚠️', nom: 'Attention', gpxSym: 'Danger Area' }
+      };
+
+      // ── WAYPOINTS — STOCKAGE ─────────────────────────────────────────────────
+      var STORAGE_KEY = 'qub-hunter-waypoints-v1';
+      var waypoints = [];
+      var waypointMarkers = {};  // id → MapLibre Marker instance
+
+      function saveWaypoints() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(waypoints)); } catch (e) { }
+      }
+      function loadWaypointsFromStorage() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) waypoints = JSON.parse(raw);
+        } catch (e) { waypoints = []; }
+      }
+      function makeId() { return 'wp-' + Date.now() + '-' + Math.floor(Math.random() * 9999); }
+
+      // ── WAYPOINTS — CARTE ────────────────────────────────────────────────────
+      function addWaypointToMap(wp) {
+        var cat = CATEGORIES[wp.cat] || CATEGORIES.affut;
+
+        var el = document.createElement('div');
+        el.className = 'map-wp-marker';
+        el.style.borderColor = { affut: '#a04a28', passage: '#6b7d4a', cache: '#4a3829', acces: '#2a5c8a', danger: '#b88a3e' }[wp.cat] || '#b88a3e';
+
+        var inner = document.createElement('span');
+        inner.textContent = cat.emoji;
+        el.appendChild(inner);
+
+        var popupHtml = '<div class="popup-type">' + cat.nom + '</div>' +
+          '<div class="popup-title">' + escXml(wp.name || cat.nom) + '</div>' +
+          '<div class="popup-row"><span class="label">lat</span><span>' + wp.lat.toFixed(5) + '</span></div>' +
+          '<div class="popup-row"><span class="label">lon</span><span>' + wp.lng.toFixed(5) + '</span></div>' +
+          (wp.note ? '<div class="popup-row" style="flex-direction:column;gap:3px;margin-top:6px"><span class="label">Note</span><span>' + escXml(wp.note) + '</span></div>' : '') +
+          '<button onclick="window.__qhDelWp(\'' + wp.id + '\')" style="margin-top:10px;width:100%;padding:7px;background:var(--blood);color:var(--paper);border:none;border-radius:3px;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;">✕ Supprimer</button>';
+
+        var popup = new maplibregl.Popup({ offset: 18, closeButton: true, maxWidth: '250px' }).setHTML(popupHtml);
+        var marker = new maplibregl.Marker({ element: el, anchor: 'bottom-left' })
+          .setLngLat([wp.lng, wp.lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        el.addEventListener('click', function () { marker.togglePopup(); });
+        waypointMarkers[wp.id] = marker;
+      }
+
+      // Global pour le bouton supprimer dans popup
+      window.__qhDelWp = function (id) { deleteWaypoint(id); };
+
+      function deleteWaypoint(id) {
+        var m = waypointMarkers[id];
+        if (m) { m.getPopup().remove(); m.remove(); delete waypointMarkers[id]; }
+        var next = [];
+        for (var i = 0; i < waypoints.length; i++) { if (waypoints[i].id !== id) next.push(waypoints[i]); }
+        waypoints = next;
+        saveWaypoints();
+        renderWaypointList();
+        showToast('Repère supprimé');
+      }
+
+      function renderWaypointList() {
+        var list = $('waypointList'); if (!list) return;
+        if (!waypoints.length) {
+          list.innerHTML = '<div class="wp-empty">Aucun repère.<br>Touchez 📍 ou faites un appui long sur la carte.</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < waypoints.length; i++) {
+          var wp = waypoints[i];
+          var cat = CATEGORIES[wp.cat] || { emoji: '📍', nom: 'Repère' };
+          html += '<div class="wp-item">' +
+            '<div class="wp-cat-emoji">' + cat.emoji + '</div>' +
+            '<div class="wp-info">' +
+            '<div class="wp-name">' + escXml(wp.name || cat.nom) + '</div>' +
+            '<div class="wp-coord">' + wp.lat.toFixed(4) + ', ' + wp.lng.toFixed(4) + '</div>' +
+            '</div>' +
+            '<div class="wp-actions">' +
+            '<button class="wp-btn goto" data-id="' + wp.id + '" title="Centrer">→</button>' +
+            '<button class="wp-btn del"  data-id="' + wp.id + '" title="Supprimer">×</button>' +
+            '</div>' +
+            '</div>';
+        }
+        list.innerHTML = html;
+
+        list.querySelectorAll('.wp-btn.goto').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-id');
+            var wp = findWp(id);
+            if (wp) { map.flyTo({ center: [wp.lng, wp.lat], zoom: 14, duration: 800 }); setPanelOpen(false); }
+          });
+        });
+        list.querySelectorAll('.wp-btn.del').forEach(function (btn) {
+          btn.addEventListener('click', function () { deleteWaypoint(btn.getAttribute('data-id')); });
+        });
+      }
+
+      function findWp(id) {
+        for (var i = 0; i < waypoints.length; i++) { if (waypoints[i].id === id) return waypoints[i]; }
+        return null;
+      }
+
+      // ── MODAL DE CRÉATION ────────────────────────────────────────────────────
+      var modalLng = null, modalLat = null, selectedCat = 'affut';
+
+      function openMarkerModal(lng, lat) {
+        modalLng = lng; modalLat = lat;
+        selectedCat = 'affut';
+        $('modalCoords').textContent = lat.toFixed(5) + '°, ' + lng.toFixed(5) + '°';
+        $('markerName').value = '';
+        $('markerNote').value = '';
+        updateCatUI();
+        $('markerModal').classList.add('open');
+        setTimeout(function () { $('markerName').focus(); }, 350);
+      }
+      function closeMarkerModal() {
+        $('markerModal').classList.remove('open');
+        modalLng = null; modalLat = null;
+      }
+      function updateCatUI() {
+        document.querySelectorAll('.cat-btn').forEach(function (btn) {
+          btn.classList.toggle('selected', btn.getAttribute('data-cat') === selectedCat);
+        });
+      }
+      function confirmAddMarker() {
+        if (modalLng === null) return;
+        var cat = CATEGORIES[selectedCat] || CATEGORIES.affut;
+        var wp = {
+          id: makeId(),
+          cat: selectedCat,
+          name: $('markerName').value.trim() || cat.nom,
+          note: $('markerNote').value.trim(),
+          lat: modalLat,
+          lng: modalLng,
+          ts: Date.now()
+        };
+        waypoints.push(wp);
+        saveWaypoints();
+        addWaypointToMap(wp);
+        renderWaypointList();
+        closeMarkerModal();
+        showToast('Repère ajouté — ' + wp.name);
+      }
+
+      document.querySelectorAll('.cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { selectedCat = btn.getAttribute('data-cat'); updateCatUI(); });
+      });
+      $('modalConfirm').addEventListener('click', confirmAddMarker);
+      $('modalCancel').addEventListener('click', closeMarkerModal);
+      $('markerModal').addEventListener('click', function (e) { if (e.target === $('markerModal')) closeMarkerModal(); });
+      $('markerName').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') confirmAddMarker();
+        if (e.key === 'Escape') closeMarkerModal();
+      });
+
+      // ── PARTAGE DE POSITION ──────────────────────────────────────────────────
+      function sharePosition() {
+        var c = map.getCenter(), z = map.getZoom().toFixed(1);
+        var url = window.location.origin + window.location.pathname +
+          '?lat=' + c.lat.toFixed(5) + '&lng=' + c.lng.toFixed(5) + '&z=' + z;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url)
+            .then(function () { showToast('Lien copié !'); })
+            .catch(function () { window.prompt('Copiez ce lien :', url); });
+        } else {
+          window.prompt('Copiez ce lien :', url);
+        }
+      }
+      $('shareBtn').addEventListener('click', sharePosition);
+
+      // ── EXPORT GPX ───────────────────────────────────────────────────────────
+      function exportGPX() {
+        if (!waypoints.length) { showToast('Aucun repère à exporter'); return; }
+        var now = new Date().toISOString();
+        var lines = [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<gpx version="1.1" creator="Qub Hunter" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">',
+          '  <metadata>',
+          '    <name>Mes repères Qub Hunter</name>',
+          '    <desc>Exporté depuis Qub Hunter — qub-hunter</desc>',
+          '    <time>' + now + '</time>',
+          '  </metadata>'
+        ];
+        for (var i = 0; i < waypoints.length; i++) {
+          var wp = waypoints[i];
+          var cat = CATEGORIES[wp.cat] || { nom: 'Repère', gpxSym: 'Waypoint' };
+          lines.push('  <wpt lat="' + wp.lat.toFixed(6) + '" lon="' + wp.lng.toFixed(6) + '">');
+          lines.push('    <name>' + escXml(wp.name || cat.nom) + '</name>');
+          if (wp.note) lines.push('    <desc>' + escXml(wp.note) + '</desc>');
+          lines.push('    <sym>' + cat.gpxSym + '</sym>');
+          lines.push('    <type>' + escXml(cat.nom) + '</type>');
+          if (wp.ts) lines.push('    <time>' + new Date(wp.ts).toISOString() + '</time>');
+          lines.push('  </wpt>');
+        }
+        lines.push('</gpx>');
+
+        var blob = new Blob([lines.join('\n')], { type: 'application/gpx+xml' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'qub-hunter-reperes-' + new Date().toISOString().slice(0, 10) + '.gpx';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        showToast(waypoints.length + ' repère(s) exporté(s) en GPX');
+      }
+
+      // ── EXPORT KML ────────────────────────────────────────────────────────────
+      function exportKML() {
+        var now = new Date().toISOString();
+        var lines = [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<kml xmlns="http://www.opengis.net/kml/2.2">',
+          '  <Document>',
+          '    <name>Qub Hunter Export</name>',
+          '    <description>Exporté le ' + now.slice(0, 10) + '</description>',
+          '    <Style id="waypointStyle"><IconStyle><color>ff8a3eb3</color><scale>1.2</scale></IconStyle></Style>',
+          '    <Style id="zoneStyle"><LineStyle><color>ff5c2a8a</color><width>2</width></LineStyle><PolyStyle><color>408a5c2a</color></PolyStyle></Style>'
+        ];
+
+        // 1. REPÈRES (Waypoints)
+        if (waypoints.length) {
+          lines.push('    <Folder><name>Repères</name>');
+          for (var i = 0; i < waypoints.length; i++) {
+            var wp = waypoints[i];
+            var cat = CATEGORIES[wp.cat] || { nom: 'Repère', emoji: '📍' };
+            lines.push('      <Placemark>');
+            lines.push('        <name>' + escXml(wp.name || cat.nom) + '</name>');
+            lines.push('        <description>' + escXml((wp.note || '') + ' [' + cat.emoji + ' ' + cat.nom + ']') + '</description>');
+            lines.push('        <styleUrl>#waypointStyle</styleUrl>');
+            lines.push('        <Point><coordinates>' + wp.lng.toFixed(6) + ',' + wp.lat.toFixed(6) + ',0</coordinates></Point>');
+            lines.push('      </Placemark>');
+          }
+          lines.push('    </Folder>');
+        }
+
+        // 2. ZONES DE CHASSE
+        if (zonesGeojson && zonesGeojson.features && zonesGeojson.features.length) {
+          lines.push('    <Folder><name>Zones de chasse</name>');
+          for (var i = 0; i < zonesGeojson.features.length; i++) {
+            var f = zonesGeojson.features[i];
+            var p = f.properties || {};
+            var zoneNo = p.NO_ZONE || p.no_zone || (i + 1);
+            lines.push('      <Placemark>');
+            lines.push('        <name>Zone ' + zoneNo + '</name>');
+            lines.push('        <styleUrl>#zoneStyle</styleUrl>');
+            lines.push('        ' + geometryToKML(f.geometry));
+            lines.push('      </Placemark>');
+          }
+          lines.push('    </Folder>');
+        }
+
+        lines.push('  </Document>');
+        lines.push('</kml>');
+
+        var blob = new Blob([lines.join('\n')], { type: 'application/vnd.google-earth.kml+xml' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'qub-hunter-export-' + new Date().toISOString().slice(0, 10) + '.kml';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        showToast('Export KML créé (repères + zones)');
+      }
+
+      // Helper pour convertir la géométrie GeoJSON en KML
+      function geometryToKML(geom) {
+        if (!geom) return '<Point><coordinates>0,0,0</coordinates></Point>';
+        if (geom.type === 'Point') {
+          return '<Point><coordinates>' + geom.coordinates[0] + ',' + geom.coordinates[1] + ',0</coordinates></Point>';
+        }
+        if (geom.type === 'Polygon') {
+          var rings = geom.coordinates;
+          var outer = rings[0]; // Outer ring
+          var coords = outer.map(function (c) { return c[0] + ',' + c[1] + ',0'; }).join(' ');
+          return '<Polygon><outerBoundaryIs><LinearRing><coordinates>' + coords + '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
+        }
+        if (geom.type === 'MultiPolygon') {
+          var polys = geom.coordinates;
+          var kml = '<MultiGeometry>';
+          for (var i = 0; i < polys.length; i++) {
+            var outer = polys[i][0];
+            var coords = outer.map(function (c) { return c[0] + ',' + c[1] + ',0'; }).join(' ');
+            kml += '<Polygon><outerBoundaryIs><LinearRing><coordinates>' + coords + '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
+          }
+          kml += '</MultiGeometry>';
+          return kml;
+        }
+        return '<Point><coordinates>0,0,0</coordinates></Point>';
+      }
+
+      $('exportGpxBtn').addEventListener('click', exportGPX);
+      $('exportKmlBtn').addEventListener('click', exportKML);
+      $('clearWaypointsBtn').addEventListener('click', function () {
+        if (!waypoints.length) { showToast('Aucun repère'); return; }
+        if (!confirm('Supprimer tous les repères ?')) return;
+        var ids = Object.keys(waypointMarkers);
+        ids.forEach(function (id) { var m = waypointMarkers[id]; if (m) { m.getPopup().remove(); m.remove(); } });
+        waypointMarkers = {};
+        waypoints = [];
+        saveWaypoints();
+        renderWaypointList();
+        showToast('Tous les repères effacés');
+      });
+
+      // ── HELPER XML ESCAPE ────────────────────────────────────────────────────
+      function escXml(s) {
+        return String(s || '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+      }
+
+      // ── TUILES ──────────────────────────────────────────────────────────────
+      var TILE_SOURCES = [
+        { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
+        { name: 'OSM', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], attrib: '© OpenStreetMap' },
+        { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' }
+      ];
+      var currentSourceIdx = 0;
+
+      function makeStyle(src) {
+        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: 256, attribution: src.attrib, maxzoom: 19 } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
+      }
+      function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
+      setSourceLabel(TILE_SOURCES[0].name);
+
+      if (typeof maplibregl === 'undefined') { showError('MapLibre GL non chargé.'); return; }
+
+      // ── PMTILES ─────────────────────────────────────────────────────────────
+      var CADASTRE_PMTILES = './pmtiles/cadastre_mauricie.pmtiles';
+      var pmtilesAvailable = false;
+      if (typeof pmtiles !== 'undefined') {
+        var protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol('pmtiles', protocol.tile);
+        pmtilesAvailable = true;
+      }
+
+      // ── CARTE ───────────────────────────────────────────────────────────────
+      var map;
+      try {
+        map = new maplibregl.Map({
+          container: 'map', style: makeStyle(TILE_SOURCES[0]),
+          center: [-71.5, 50.0], zoom: 5, minZoom: 3, maxZoom: 18,
+          attributionControl: { compact: true }, useWebWorkers: false
+        });
+      } catch (err) { showError('Init carte : ' + err.message); return; }
+
+      // ── URL PARAMS (position partagée) ──────────────────────────────────────
+      // Lire les paramètres à l'init — on fly après le premier load
+      var sharedPos = null;
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var pLat = parseFloat(params.get('lat'));
+        var pLng = parseFloat(params.get('lng'));
+        var pZ = parseFloat(params.get('z'));
+        if (!isNaN(pLat) && !isNaN(pLng)) {
+          sharedPos = { lat: pLat, lng: pLng, z: isNaN(pZ) ? 12 : pZ };
+        }
+      } catch (e) { }
+
+      // ── MRNF ────────────────────────────────────────────────────────────────
+      var MRNF_BASE = 'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Territoire/TRQ_WMS/MapServer';
+      var MRNF_LAYERS = {
+        zec: { id: 16, name: 'ZEC', color: '#7a8a3e', fillOpacity: 0.5 },
+        pourvoirie: { id: 8, name: 'Pourvoirie (DE)', color: '#a04a28', fillOpacity: 0.5 },
+        reserve: { id: 11, name: 'Réserve faunique', color: '#3d5234', fillOpacity: 0.5 },
+        parc: { id: 5, name: 'Parc national (Québec)', color: '#b88a3e', fillOpacity: 0.38 }
+      };
+      var ZONES_URL = 'https://servicescarto.mern.gouv.qc.ca/pes/rest/services/Territoire/ZoneChasse/MapServer/0/query';
+      var QC_BBOX = '-79.8,44.9,-57.1,62.6';
+
+      function arcgisQuery(baseUrl, layerId, callback) {
+        var params = ['where=1%3D1', 'outFields=*', 'f=geojson', 'resultRecordCount=2000', 'geometry=' + encodeURIComponent(QC_BBOX), 'geometryType=esriGeometryEnvelope', 'inSR=4326', 'spatialRel=esriSpatialRelIntersects', 'maxAllowableOffset=0.005'].join('&');
+        fetch(baseUrl + '/' + layerId + '/query?' + params)
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (d) { if (d.error) throw new Error(d.error.message || 'ArcGIS error'); callback(null, d); })
+          .catch(function (e) { callback(e, null); });
+      }
+      function nameFromProps(props) {
+        var nom = props.NOM || props.NOM_TER || props.NOM_ZEC || props.NOM_ZON || props.NOM_ENTITE || props.NOM_TERRITOIRE || props.NOM_POURVOIRIE || props.NAME || props.Nom || props.nom || props.ENTITY_NAME || props.NM_TERR || props.NM_TER || props.ZONE_NO || props.NO_ZONE || props.NO_TERR || props.ID;
+        return nom || '(sans nom)';
+      }
+      function typeLabel(key) { return { zec: 'ZEC', pourvoirie: 'Pourvoirie (DE)', reserve: 'Réserve faunique', parc: 'Parc national', zones: 'Zone de chasse', autochtone: 'Territoire autochtone' }[key] || key; }
+
+      // ── DONNÉES DÉMO ────────────────────────────────────────────────────────
+      function polyDemo(name, type, cx, cy, dx, dy) {
+        var seed = 0; for (var i = 0; i < name.length; i++) seed += name.charCodeAt(i);
+        var rand = function (i) { var x = Math.sin(seed + i * 137.5) * 10000; return x - Math.floor(x); };
+        var pts = [], n = 8;
+        for (var k = 0; k < n; k++) { var angle = (k / n) * Math.PI * 2; var r = 0.7 + rand(k) * 0.5; pts.push([cx + Math.cos(angle) * dx * r, cy + Math.sin(angle) * dy * r]); }
+        pts.push(pts[0]);
+        return { type: 'Feature', properties: { NOM: name, type: type }, geometry: { type: 'Polygon', coordinates: [pts] } };
+      }
+      function demoZonesChasse() {
+        var features = []; var pos = [[-74, 47.5, 1.2, 0.8], [-76, 48.5, 1.4, 0.9], [-71, 48.5, 1.0, 0.8], [-68, 48.8, 1.2, 0.9], [-65, 48.5, 1.0, 0.7], [-73, 46.5, 1.1, 0.8], [-70, 46.8, 0.9, 0.7], [-66, 47.5, 1.0, 0.8]];
+        for (var i = 0; i < pos.length; i++) { var p = pos[i]; features.push(polyDemo('Zone ' + (i + 1), 'Zone de chasse', p[0], p[1], p[2], p[3])); }
+        return { type: 'FeatureCollection', features: features };
+      }
+      var DEMO_DATA = {
+        zec: { type: 'FeatureCollection', features: [polyDemo('ZEC Bessonne', 'ZEC', -73.4, 47.6, 0.4, 0.3), polyDemo('ZEC des Nymphes', 'ZEC', -74.5, 46.8, 0.3, 0.25), polyDemo('ZEC Mazana', 'ZEC', -75.2, 46.5, 0.35, 0.3), polyDemo('ZEC Petawaga', 'ZEC', -75.8, 47.0, 0.4, 0.35), polyDemo('ZEC des Martres', 'ZEC', -71.2, 47.9, 0.3, 0.25), polyDemo('ZEC Buteux-Bas-Saguenay', 'ZEC', -70.5, 48.4, 0.45, 0.35), polyDemo('ZEC Onatchiway', 'ZEC', -71.0, 49.0, 0.5, 0.4), polyDemo('ZEC du Lac-au-Sable', 'ZEC', -71.8, 47.2, 0.3, 0.25)] },
+        pourvoirie: { type: 'FeatureCollection', features: [polyDemo('Pourvoirie du Lac Berval', 'Pourvoirie DE', -75.5, 46.2, 0.15, 0.12), polyDemo('Pourvoirie Saint-Zénon', 'Pourvoirie DE', -73.8, 46.5, 0.18, 0.15), polyDemo('Pourvoirie du Triton', 'Pourvoirie DE', -72.6, 47.5, 0.2, 0.18)] },
+        reserve: { type: 'FeatureCollection', features: [polyDemo('Réserve faunique des Laurentides', 'Réserve faunique', -71.3, 47.6, 0.9, 0.7), polyDemo('Réserve faunique de Portneuf', 'Réserve faunique', -72.0, 47.1, 0.5, 0.4), polyDemo('Réserve faunique Mastigouche', 'Réserve faunique', -73.1, 46.8, 0.6, 0.5), polyDemo('Réserve faunique La Vérendrye', 'Réserve faunique', -76.5, 47.3, 1.2, 0.9), polyDemo('Réserve faunique des Chic-Chocs', 'Réserve faunique', -65.8, 48.9, 0.4, 0.3)] },
+        parc: { type: 'FeatureCollection', features: [polyDemo('Parc national de la Mauricie', 'Parc national', -72.9, 46.8, 0.4, 0.3), polyDemo('Parc national des Hautes-Gorges', 'Parc national', -70.4, 47.9, 0.35, 0.28), polyDemo('Parc national de la Jacques-Cartier', 'Parc national', -71.3, 47.2, 0.3, 0.25)] }
+      };
+
+      // ── AJOUT COUCHES ────────────────────────────────────────────────────────
+      function addLayer(key, geojson, color, fillOpacity, isLive) {
+        var sourceId = 'src-' + key, fillId = 'fill-' + key, lineId = 'line-' + key;
+        if (map.getSource(sourceId)) { map.getSource(sourceId).setData(geojson); return; }
+        map.addSource(sourceId, { type: 'geojson', data: geojson });
+        map.addLayer({ id: fillId, type: 'fill', source: sourceId, paint: { 'fill-color': color, 'fill-opacity': fillOpacity } });
+        map.addLayer({ id: lineId, type: 'line', source: sourceId, paint: { 'line-color': color, 'line-width': key === 'zones' ? 1.5 : 1.8, 'line-opacity': 0.9 } });
+        map.on('click', fillId, function (e) {
+          var f = e.features[0];
+          var nom = nameFromProps(f.properties);
+          new maplibregl.Popup({ offset: 10, closeButton: true, maxWidth: '300px' })
+            .setLngLat(e.lngLat).setHTML(buildPopupHTML(key, nom, isLive, f.properties)).addTo(map);
+        });
+        map.on('mouseenter', fillId, function () { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', fillId, function () { map.getCanvas().style.cursor = ''; });
+      }
+
+      function loadMRNFLayer(key, layerDef) {
+        startLoading('Chargement ' + layerDef.name + '…');
+        var descEl = $('desc-' + key);
+        var localFile = { zec: './data/processed/tfs_zec.geojson', pourvoirie: './data/processed/tfs_pourvoirie.geojson', reserve: './data/processed/tfs_reserve.geojson', parc: './data/processed/trq_parc_quebec.geojson' }[key];
+
+        function loadFromAPI() {
+          arcgisQuery(MRNF_BASE, layerDef.id, function (err, data) {
+            stopLoading();
+            var hasData = !err && data && data.features && data.features.length > 0;
+            if (hasData) {
+              addLayer(key, data, layerDef.color, layerDef.fillOpacity, true);
+              if (descEl) descEl.textContent = data.features.length + ' territoires (MRNF)';
+            } else {
+              var demo = DEMO_DATA[key];
+              addLayer(key, demo, layerDef.color, layerDef.fillOpacity, false);
+              if (descEl) descEl.textContent = demo.features.length + ' territoires (démo)';
+            }
+            updateOfflinePanel();
+          });
+        }
+
+        if (localFile) {
+          fetch(localFile)
+            .then(function (r) { if (!r.ok) throw new Error('absent'); return r.json(); })
+            .then(function (data) {
+              stopLoading();
+              if (!data.features || !data.features.length) throw new Error('vide');
+              addLayer(key, data, layerDef.color, layerDef.fillOpacity, true);
+              if (descEl) descEl.textContent = data.features.length + ' territoires (local ✓)';
+              updateOfflinePanel();
+            })
+            .catch(function () { loadFromAPI(); });
+        } else {
+          loadFromAPI();
+        }
+      }
+
+      function loadZonesChasse() {
+        startLoading('Zones de chasse…');
+        var descEl = $('desc-zones');
+
+        // ── Priorité 1 : fichier local généré par pipeline/download_zones.py ──
+        fetch('./zones_chasse.geojson')
+          .then(function (r) { if (!r.ok) throw new Error('absent'); return r.json(); })
+          .then(function (data) {
+            stopLoading();
+            if (!data.features || !data.features.length) throw new Error('vide');
+            zonesGeojson = data; // Stocker pour export KML
+            addLayer('zones', data, '#2a5c8a', 0.15, true);
+            // Compter les zones uniques
+            var uniqueZones = {};
+            data.features.forEach(function (f) {
+              var z = f.properties && f.properties.NO_ZONE;
+              if (z) uniqueZones[z] = true;
+            });
+            var zoneCount = Object.keys(uniqueZones).length;
+            if (descEl) descEl.textContent = zoneCount + ' zones (' + data.features.length + ' polygones) · local ✓';
+            updateOfflinePanel();
+          })
+          .catch(function () {
+            // ── Priorité 2 : serveur MRNF (bloqué par CORS en navigateur) ──
+            var p = ['where=1%3D1', 'outFields=*', 'f=geojson', 'resultRecordCount=50', 'maxAllowableOffset=0.01'].join('&');
+            fetch(ZONES_URL + '?' + p)
+              .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+              .then(function (data) {
+                stopLoading();
+                if (data.error || !data.features || !data.features.length) throw new Error('vide');
+                zonesGeojson = data; // Stocker pour export KML
+                addLayer('zones', data, '#2a5c8a', 0.15, true);
+                // Compter les zones uniques
+                var uniqueZones = {};
+                data.features.forEach(function (f) {
+                  var z = f.properties && (f.properties.NO_ZONE || f.properties.ZONE_NO || f.properties.NOM_ZON);
+                  if (z) uniqueZones[String(z).replace(/\\D/g, '')] = true;
+                });
+                var zoneCount = Object.keys(uniqueZones).length;
+                if (descEl) descEl.textContent = zoneCount + ' zones (' + data.features.length + ' polygones) · MRNF';
+                updateOfflinePanel();
+              })
+              .catch(function () {
+                // ── Priorité 3 : données démo (fallback) ──
+                stopLoading();
+                var demo = demoZonesChasse();
+                zonesGeojson = demo; // Stocker pour export KML
+                addLayer('zones', demo, '#2a5c8a', 0.15, false);
+                if (descEl) {
+                  descEl.innerHTML = '8 zones (démo) · <span style="color:var(--rust)">générez zones_chasse.geojson</span>';
+                }
+                updateOfflinePanel();
+              });
+          });
+      }
+
+      function loadCadastre() {
+        var descEl = $('desc-cadastre');
+        if (!pmtilesAvailable) { if (descEl) descEl.textContent = 'pmtiles.js non chargé'; return; }
+        fetch(CADASTRE_PMTILES, { method: 'HEAD' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('absent');
+            map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
+            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            map.on('click', 'line-cadastre', function (e) {
+              var f = e.features[0]; if (!f) return; var p = f.properties || {};
+              var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
+              new maplibregl.Popup({ offset: 10, closeButton: true }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+            });
+            map.on('mouseenter', 'line-cadastre', function () { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'line-cadastre', function () { map.getCanvas().style.cursor = ''; });
+            if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 12)';
+            var leg = $('legend-cadastre'); if (leg) leg.style.display = 'flex';
+          })
+          .catch(function () { if (descEl) descEl.textContent = 'PMTiles absent — générez-le'; });
+      }
+
+      // ── CADASTRE HYBRIDE : Local + API MRNF ─────────────────────────────────
+      var CADASTRA_MERN_URL = 'https://geo.environnement.gouv.qc.ca/donnees/rest/services/Reference/Cadastre_allege/MapServer/0';
+      var cadastreLocalData = null;
+      var zonesGeojson = null; // Pour export KML
+
+      function loadCadastre() {
+        var descEl = $('desc-cadastre');
+
+        // ── Priorité 1 : Cadastre local des zones de chasse ──
+        fetch('./cadastre_zones.geojson')
+          .then(function (r) { if (!r.ok) throw new Error('absent'); return r.json(); })
+          .then(function (data) {
+            cadastreLocalData = data;
+            addCadastreLayer(data, true);
+            var lotCount = data.features ? data.features.length : 0;
+            if (descEl) descEl.textContent = lotCount + ' lots des zones 02-29 · local ';
+            updateOfflinePanel();
+          })
+          .catch(function () {
+            // ── Priorité 2 : PMTiles fallback ──
+            loadCadastrePMTiles(descEl);
+          });
+      }
+
+      function addCadastreLayer(geojson, isLocal) {
+        var sourceId = 'src-cadastre';
+        if (map.getSource(sourceId)) { map.getSource(sourceId).setData(geojson); return; }
+
+        map.addSource(sourceId, { type: 'geojson', data: geojson });
+        map.addLayer({
+          id: 'line-cadastre', type: 'line', source: sourceId,
+          minzoom: 12,
+          paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 }
+        });
+        map.addLayer({
+          id: 'label-cadastre', type: 'symbol', source: sourceId,
+          minzoom: 14,
+          layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 },
+          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }
+        });
+
+        // ── SURBRILLANCE POLYGONE LOT ───────────────────────────────────────────
+        function highlightLot(feature) {
+          // Créer ou mettre à jour la source de surbrillance
+          var highlightId = 'src-cadastre-highlight';
+          var fillLayerId = 'fill-cadastre-highlight';
+          var lineLayerId = 'line-cadastre-highlight';
+
+          // Supprimer l'ancienne surbrillance
+          if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+          if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+          if (map.getSource(highlightId)) map.removeSource(highlightId);
+
+          // Ajouter la nouvelle source avec le polygone du lot
+          map.addSource(highlightId, {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [feature] }
+          });
+
+          // Couche de remplissage semi-transparente
+          map.addLayer({
+            id: fillLayerId,
+            type: 'fill',
+            source: highlightId,
+            paint: {
+              'fill-color': '#d4a84b',
+              'fill-opacity': 0.35
+            }
+          });
+
+          // Bordure plus épaisse
+          map.addLayer({
+            id: lineLayerId,
+            type: 'line',
+            source: highlightId,
+            paint: {
+              'line-color': '#8a6a3a',
+              'line-width': 3
+            }
+          });
+
+          // Zoom sur le polygone
+          var coords = [];
+          var geom = feature.geometry;
+          if (geom.type === 'Polygon') {
+            coords = geom.coordinates[0];
+          } else if (geom.type === 'MultiPolygon') {
+            coords = geom.coordinates[0][0];
+          }
+
+          if (coords.length > 0) {
+            var bounds = coords.reduce(function (bounds, coord) {
+              return bounds.extend(coord);
+            }, new maplibregl.LngLatBounds(coords[0], coords[0]));
+
+            map.fitBounds(bounds, {
+              padding: 50,
+              maxZoom: 18,
+              duration: 800
+            });
+          }
+
+          // Supprimer la surbrillance après 10 secondes
+          setTimeout(function () {
+            if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+            if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+            if (map.getSource(highlightId)) map.removeSource(highlightId);
+          }, 10000);
+        }
+
+        map.on('click', 'line-cadastre', function (e) {
+          var f = e.features[0]; if (!f) return; var p = f.properties || {};
+          var lotNo = p.NO_LOT || '';
+          var zone = p.ZONE_CHASSE ? '<div class="popup-row"><span class="label">Zone chasse</span><span>Zone ' + p.ZONE_CHASSE + '</span></div>' : '';
+
+          // Liens externes
+          var infolotUrl = 'https://appli.foncier.gouv.qc.ca/infolot/?nolot=' + encodeURIComponent(lotNo.replace(/\s/g, ''));
+          var registreUrl = getRegistreUrl(lotNo);
+
+          var html = '<div class="popup-type">Cadastre rénové</div>' +
+            '<div class="popup-title">Lot ' + (lotNo || '—') + '</div>' +
+            zone +
+            '<div class="popup-row"><span class="label">Source</span><span>' + (isLocal ? 'Local' : 'MRNF') + '</span></div>' +
+            '<div class="popup-cad-links" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(139,115,85,0.3)">' +
+            '<a class="popup-cad-link" href="' + infolotUrl + '" target="_blank" rel="noopener" title="Information cadastrale">📍 Infolot</a>' +
+            '<a class="popup-cad-link" href="' + registreUrl + '" target="_blank" rel="noopener" title="Actes et propriétaires (compte requis)">📜 Registre</a>' +
+            '</div>';
+
+          new maplibregl.Popup({ offset: 10, closeButton: true }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+
+          // Afficher le polygone en surbrillance
+          highlightLot(f);
+        });
+        map.on('mouseenter', 'line-cadastre', function () { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'line-cadastre', function () { map.getCanvas().style.cursor = ''; });
+
+        var leg = $('legend-cadastre'); if (leg) leg.style.display = 'flex';
+
+        // Exposer la fonction pour la recherche
+        window.highlightLotByNumber = function (lotNo) {
+          if (!cadastreLocalData || !cadastreLocalData.features) return false;
+          var normalizedSearch = lotNo.toString().replace(/\s/g, '');
+          var found = cadastreLocalData.features.find(function (f) {
+            var props = f.properties || {};
+            var noLot = (props.NO_LOT || '').toString().replace(/\s/g, '');
+            return noLot === normalizedSearch;
+          });
+          if (found) {
+            highlightLot(found);
+            return true;
+          }
+          return false;
+        };
+      }
+
+      function loadCadastrePMTiles(descEl) {
+        if (!pmtilesAvailable) { if (descEl) descEl.textContent = 'pmtiles.js non chargé'; return; }
+        fetch(CADASTRE_PMTILES, { method: 'HEAD' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('absent');
+            map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
+            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            map.on('click', 'line-cadastre', function (e) {
+              var f = e.features[0]; if (!f) return; var p = f.properties || {};
+              var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
+              new maplibregl.Popup({ offset: 10, closeButton: true }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+            });
+            map.on('mouseenter', 'line-cadastre', function () { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'line-cadastre', function () { map.getCanvas().style.cursor = ''; });
+            if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 12)';
+            var leg = $('legend-cadastre'); if (leg) leg.style.display = 'flex';
+          })
+          .catch(function () { if (descEl) descEl.textContent = 'Cadastre non disponible'; });
+      }
+
+      // ── RECHERCHE PAR LOT (via API MRNF) ──────────────────────────────────────
+      function searchLotByNumber(lotNumber, callback) {
+        // D'abord chercher dans le local
+        if (cadastreLocalData && cadastreLocalData.features) {
+          var localResults = cadastreLocalData.features.filter(function (f) {
+            var noLot = f.properties && f.properties.NO_LOT;
+            return noLot && noLot.toString().toLowerCase().includes(lotNumber.toLowerCase());
+          });
+          if (localResults.length > 0) {
+            callback(null, localResults);
+            return;
+          }
+        }
+
+        // Sinon, requête MRNF
+        var params = [
+          'where=' + encodeURIComponent("NO_LOT LIKE '%" + lotNumber + "%'"),
+          'outFields=NO_LOT',
+          'f=geojson',
+          'resultRecordCount=50',
+          'returnGeometry=true'
+        ].join('&');
+
+        fetch(CADASTRA_MERN_URL + '/query?' + params)
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (data) {
+            if (data.error) throw new Error(data.error.message);
+            callback(null, data.features || []);
+          })
+          .catch(function (e) {
+            console.error('Erreur recherche lot:', e);
+            callback(e, []);
+          });
+      }
+
+      // ── TERRITOIRES AUTOCHTONES ──────────────────────────────────────────────
+      function loadIndigenousLayer() {
+        map.addSource('src-autochtone', { type: 'geojson', data: TERRITORIES_AUTOCHTONES });
+        map.addLayer({
+          id: 'fill-autochtone', type: 'fill', source: 'src-autochtone',
+          paint: { 'fill-color': '#6b1a14', 'fill-opacity': 0.07 }
+        });
+        map.addLayer({
+          id: 'line-autochtone', type: 'line', source: 'src-autochtone',
+          paint: { 'line-color': '#6b1a14', 'line-width': 1.5, 'line-opacity': 0.55, 'line-dasharray': [5, 3] }
+        });
+        map.on('click', 'fill-autochtone', function (e) {
+          var f = e.features[0]; if (!f) return; var p = f.properties;
+          var html =
+            '<div class="popup-type">Territoire autochtone</div>' +
+            '<div class="popup-title">' + escXml(p.nom) + '</div>' +
+            '<div class="autochtone-badge">' + escXml(p.nation) + '</div>' +
+            '<div class="regl-detail" style="margin-top:8px;line-height:1.55">' + escXml(p.note) + '</div>' +
+            '<div class="regl-disclaimer" style="margin-top:8px">⚖ Droits ancestraux protégés par l\'art. 35 de la Loi constitutionnelle (1982). Consultez les autorités locales avant de chasser dans ce territoire.</div>';
+          if (p.url) html += '<a class="popup-mrnf-link" href="' + escXml(p.url) + '" target="_blank" rel="noopener">Site officiel →</a>';
+          new maplibregl.Popup({ offset: 10, closeButton: true, maxWidth: '310px' })
+            .setLngLat(e.lngLat).setHTML(html).addTo(map);
+        });
+        map.on('mouseenter', 'fill-autochtone', function () { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'fill-autochtone', function () { map.getCanvas().style.cursor = ''; });
+      }
+
+      // ── ZONE 300 M (cercle autour de la position GPS) ────────────────────────
+      var circle300mActive = false;
+      var gpsLatLng = null;
+
+      function makeCircleGeoJSON(lat, lng, radiusM) {
+        var coords = [], steps = 64;
+        for (var i = 0; i < steps; i++) {
+          var bearing = (i / steps) * 2 * Math.PI;
+          var lat2 = lat + (radiusM / 111320) * Math.cos(bearing);
+          var lng2 = lng + (radiusM / (111320 * Math.cos(lat * Math.PI / 180))) * Math.sin(bearing);
+          coords.push([lng2, lat2]);
+        }
+        coords.push(coords[0]);
+        return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: {} }] };
+      }
+
+      function render300mCircle(lat, lng) {
+        var geojson = makeCircleGeoJSON(lat, lng, 300);
+        if (map.getSource('src-zone300m')) {
+          map.getSource('src-zone300m').setData(geojson);
+          ['fill-zone300m', 'line-zone300m'].forEach(function (id) {
+            if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
+          });
+        } else {
+          map.addSource('src-zone300m', { type: 'geojson', data: geojson });
+          map.addLayer({
+            id: 'fill-zone300m', type: 'fill', source: 'src-zone300m',
+            paint: { 'fill-color': '#a04a28', 'fill-opacity': 0.12 }
+          });
+          map.addLayer({
+            id: 'line-zone300m', type: 'line', source: 'src-zone300m',
+            paint: { 'line-color': '#a04a28', 'line-width': 2, 'line-opacity': 0.75, 'line-dasharray': [5, 3] }
+          });
+        }
+      }
+
+      function update300mCircle(lat, lng) {
+        gpsLatLng = { lat: lat, lng: lng };
+        if (circle300mActive) render300mCircle(lat, lng);
+      }
+
+      function toggle300m(enabled) {
+        circle300mActive = enabled;
+        if (enabled) {
+          if (gpsLatLng) {
+            render300mCircle(gpsLatLng.lat, gpsLatLng.lng);
+            showToast('Zone 300 m activée');
+          } else {
+            showToast('Activez d\'abord la géolocalisation 📍');
+            // Désactiver visuellement le toggle
+            var t = $('toggle300m'); if (t) { t.checked = false; circle300mActive = false; }
+          }
+        } else {
+          ['fill-zone300m', 'line-zone300m'].forEach(function (id) {
+            if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+          });
+        }
+      }
+
+      function loadAllLayers() {
+        loadZonesChasse();
+        Object.keys(MRNF_LAYERS).forEach(function (key) { loadMRNFLayer(key, MRNF_LAYERS[key]); });
+        loadCadastre();
+        loadIndigenousLayer();
+        $('legend').classList.add('visible');
+        updateOfflinePanel();
+      }
+
+      map.on('load', function () {
+        loadAllLayers();
+        updateCompass();
+
+        // Position partagée via URL
+        if (sharedPos) {
+          map.flyTo({ center: [sharedPos.lng, sharedPos.lat], zoom: sharedPos.z, duration: 1200 });
+          setTimeout(function () { showToast('Position reçue par lien'); }, 1400);
+        }
+
+        // Charger les waypoints sauvegardés
+        loadWaypointsFromStorage();
+        for (var i = 0; i < waypoints.length; i++) { addWaypointToMap(waypoints[i]); }
+        renderWaypointList();
+      });
+
+      map.on('styledata', function () { if (!map.getSource('src-zec')) loadAllLayers(); });
+
+      map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+      map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+
+      // ── COORDONNÉES ──────────────────────────────────────────────────────────
+      function updateCompass() {
+        if (!map) return;
+        var c = map.getCenter();
+        $('lat').textContent = c.lat.toFixed(4) + '°';
+        $('lon').textContent = c.lng.toFixed(4) + '°';
+        $('zm').textContent = map.getZoom().toFixed(1);
+      }
+      map.on('move', updateCompass);
+
+      // ── SOURCE SWITCHER ───────────────────────────────────────────────────────
+      $('switchSource').addEventListener('click', function () {
+        currentSourceIdx = (currentSourceIdx + 1) % TILE_SOURCES.length;
+        var src = TILE_SOURCES[currentSourceIdx]; setSourceLabel(src.name); map.setStyle(makeStyle(src));
+      });
+
+      // ── GÉOLOCALISATION ───────────────────────────────────────────────────────
+      try {
+        var geoCtrl = new maplibregl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true }, trackUserLocation: true,
+          showUserHeading: true, fitBoundsOptions: { maxZoom: 14 }
+        });
+        map.addControl(geoCtrl);
+        geoCtrl.on('geolocate', function (e) {
+          update300mCircle(e.coords.latitude, e.coords.longitude);
+        });
+        map.once('idle', function () {
+          var ctrl = document.querySelector('.maplibregl-ctrl-geolocate'); if (ctrl) ctrl.style.display = 'none';
+        });
+        $('geoFab').addEventListener('click', function () {
+          var ctrl = document.querySelector('.maplibregl-ctrl-geolocate');
+          if (ctrl) ctrl.click(); else showError('Géolocalisation indisponible (HTTPS requis)');
+        });
+      } catch (e) { }
+
+      // ── WAYPOINT FAB ─────────────────────────────────────────────────────────
+      $('wpFab').addEventListener('click', function () {
+        var c = map.getCenter();
+        openMarkerModal(c.lng, c.lat);
+      });
+
+      // ── APPUI LONG SUR CARTE (mobile) ────────────────────────────────────────
+      var longPressTimer = null;
+      var longPressOrigin = null;
+
+      function spawnRipple(clientX, clientY) {
+        var r = document.createElement('div');
+        r.className = 'lp-ripple';
+        r.style.left = clientX + 'px';
+        r.style.top = clientY + 'px';
+        document.body.appendChild(r);
+        setTimeout(function () { if (r.parentNode) r.parentNode.removeChild(r); }, 650);
+      }
+
+      map.getCanvas().addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) { clearTimeout(longPressTimer); return; }
+        var t = e.touches[0];
+        longPressOrigin = { x: t.clientX, y: t.clientY };
+        longPressTimer = setTimeout(function () {
+          longPressTimer = null;
+          if (navigator.vibrate) navigator.vibrate(55);
+          spawnRipple(t.clientX, t.clientY);
+          var canvasRect = map.getCanvas().getBoundingClientRect();
+          var point = map.unproject([t.clientX - canvasRect.left, t.clientY - canvasRect.top]);
+          openMarkerModal(point.lng, point.lat);
+        }, 550);
+      }, { passive: true });
+
+      map.getCanvas().addEventListener('touchmove', function (e) {
+        if (!longPressOrigin || !longPressTimer) return;
+        var t = e.touches[0];
+        var dx = t.clientX - longPressOrigin.x, dy = t.clientY - longPressOrigin.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 10) { clearTimeout(longPressTimer); longPressTimer = null; }
+      }, { passive: true });
+
+      map.getCanvas().addEventListener('touchend', function () {
+        clearTimeout(longPressTimer); longPressTimer = null;
+      }, { passive: true });
+
+      // Clic droit sur desktop
+      map.getCanvas().addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        var rect = map.getCanvas().getBoundingClientRect();
+        var point = map.unproject([e.clientX - rect.left, e.clientY - rect.top]);
+        openMarkerModal(point.lng, point.lat);
+      });
+
+      // ── PANEL ─────────────────────────────────────────────────────────────────
+      var panel = $('panel'), panelHandle = $('panelHandle'), panelToggle = $('panelToggle'), panelMeta = $('panelMeta');
+
+      function setPanelOpen(open) {
+        panel.classList.toggle('open', open);
+        panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
+        panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
+        if (open) updateOfflinePanel();
+      }
+
+      var dragStartY = null;
+      panelHandle.addEventListener('touchstart', function (e) { dragStartY = e.touches[0].clientY; }, { passive: true });
+      panelHandle.addEventListener('touchmove', function (e) {
+        if (dragStartY === null) return;
+        var dy = e.touches[0].clientY - dragStartY;
+        if (dy < -30) { setPanelOpen(true); dragStartY = null; }
+        else if (dy > 30) { setPanelOpen(false); dragStartY = null; }
+      }, { passive: true });
+      panelHandle.addEventListener('touchend', function () { dragStartY = null; });
+      panelHandle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
+      panelToggle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
+
+      // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
+      var inputs = document.querySelectorAll('input[data-layer]');
+      for (var i = 0; i < inputs.length; i++) {
+        (function (input) {
+          input.addEventListener('change', function () {
+            var key = input.getAttribute('data-layer');
+            var vis = input.checked ? 'visible' : 'none';
+            var ids = key === 'cadastre' ? ['line-cadastre', 'label-cadastre'] : ['fill-' + key, 'line-' + key];
+            ids.forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
+          });
+        })(inputs[i]);
+      }
+
+      // ── TOGGLE ZONE 300M ──────────────────────────────────────────────────────
+      var t300 = $('toggle300m');
+      if (t300) t300.addEventListener('change', function () { toggle300m(this.checked); });
+
+      // ── RECHERCHE ─────────────────────────────────────────────────────────────
+      var searchOverlay = $('searchOverlay'), searchInput = $('searchInput'), searchResults = $('searchResults');
+      var searchDebounce = null, activeMarker = null;
+
+      $('searchToggle').addEventListener('click', function () { searchOverlay.classList.add('open'); setTimeout(function () { searchInput.focus(); }, 300); });
+      $('searchClose').addEventListener('click', function () { searchOverlay.classList.remove('open'); searchInput.value = ''; searchResults.innerHTML = ''; });
+
+      function showSearchResults(items) {
+        if (!items || !items.length) { searchResults.innerHTML = '<div class="search-empty">Aucun résultat</div>'; return; }
+        var html = '';
+        items.forEach(function (item) {
+          var isCad = item.isCadastre;
+          var noLoc = isCad && item.noLocation;
+          var dataAttrs = noLoc
+            ? 'data-noloc="1"'
+            : ('data-lng="' + item.lng + '" data-lat="' + item.lat + '"');
+          dataAttrs += (item.lotNo ? ' data-lot="' + escXml(item.lotNo) + '"' : '') +
+            (item.muni ? ' data-muni="' + escXml(item.muni) + '"' : '') +
+            (item.mrc ? ' data-mrc="' + escXml(item.mrc) + '"' : '');
+
+          html += '<div class="search-result-item' + (isCad ? ' is-cadastre' : '') + '" ' + dataAttrs + '>';
+
+          if (isCad) {
+            // ── Résultat cadastral enrichi ──
+            html += '<div class="r-type">Lot cadastral' + (item.zoneChasse ? ' · Zone ' + item.zoneChasse : '') + '</div>';
+            html += '<div class="r-lot">N° ' + escXml(item.lotNo || item.name) + '</div>';
+            if (item.muni || item.mrc) {
+              html += '<div class="r-muni">' +
+                (item.muni ? escXml(item.muni) : '') +
+                (item.muni && item.mrc ? ' · ' : '') +
+                (item.mrc ? escXml(item.mrc) : '') + '</div>';
+            }
+            if (!noLoc) {
+              html += '<div class="r-coord">' + item.lat.toFixed(5) + ', ' + item.lng.toFixed(5) + '</div>';
+            } else {
+              html += '<div class="r-noloc">→ Ouvrir dans Matrice ou Registre</div>';
+            }
+            html += '<div class="r-links">' +
+              '<span class="r-link" data-action="infolot">📍 Infolot</span>' +
+              '<span class="r-link" data-action="matrice">🗺 Matrice</span>' +
+              '<span class="r-link" data-action="registre">📜 Registre</span>' +
+              '</div>';
+          } else {
+            // ── Résultat standard ──
+            html += '<div class="r-type">' + escXml(item.type || 'Lieu') + '</div>' +
+              '<div class="r-name">' + escXml(item.name) + '</div>' +
+              '<div class="r-coord">' + item.lat.toFixed(4) + ', ' + item.lng.toFixed(4) + '</div>';
+          }
+          html += '</div>';
+        });
+        searchResults.innerHTML = html;
+
+        // ── Clic sur un résultat → centrer carte ──
+        searchResults.querySelectorAll('.search-result-item').forEach(function (el) {
+          el.addEventListener('click', function (e) {
+            // Ignorer si clic sur un bouton lien
+            if (e.target.getAttribute('data-action')) return;
+            // Ignorer si lot sans localisation (laisser les liens agir)
+            if (el.getAttribute('data-noloc') === '1') return;
+
+            var lng = parseFloat(el.getAttribute('data-lng'));
+            var lat = parseFloat(el.getAttribute('data-lat'));
+            var lotNo = el.getAttribute('data-lot');
+            var muni = el.getAttribute('data-muni');
+            var mrc = el.getAttribute('data-mrc');
+
+            map.flyTo({ center: [lng, lat], zoom: lotNo ? 16 : 12, duration: 1000 });
+            if (activeMarker) activeMarker.remove();
+            activeMarker = new maplibregl.Marker({ color: '#b88a3e' }).setLngLat([lng, lat]).addTo(map);
+
+            if (lotNo) {
+              // Popup enrichi pour lot cadastral
+              new maplibregl.Popup({ offset: 18, closeButton: true, maxWidth: '300px', anchor: 'bottom' })
+                .setLngLat([lng, lat])
+                .setHTML(buildCadastrePopup(lotNo, muni, mrc, lat, lng))
+                .addTo(map);
+
+              // Afficher le polygone du lot en surbrillance
+              if (window.highlightLotByNumber) {
+                window.highlightLotByNumber(lotNo);
+              }
+            }
+
+            searchOverlay.classList.remove('open');
+            searchInput.value = '';
+            searchResults.innerHTML = '';
+          });
+        });
+
+        // ── Clic sur boutons Matrice / Registre ──
+        searchResults.querySelectorAll('.r-link[data-action]').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var item = btn.closest('.search-result-item');
+            var action = btn.getAttribute('data-action');
+            var lotNo = item.getAttribute('data-lot');
+            var mrc = item.getAttribute('data-mrc');
+            var url = action === 'matrice' ? getMatriceUrl(mrc) :
+              action === 'registre' ? getRegistreUrl(lotNo) :
+                  /* infolot */  'https://appli.foncier.gouv.qc.ca/infolot/?nolot=' + encodeURIComponent(lotNo);
+            window.open(url, '_blank', 'noopener,noreferrer');
+          });
+        });
+      }
+
+      function iChercheSearch(query) {
+        return fetch('https://geoegl.msp.gouv.qc.ca/apis/icherche/geocode?q=' + encodeURIComponent(query) + '&type=adresse,municipalite,mrc&limit=6&epsg=4326')
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (data) {
+            var items = [];
+            if (data && data.features) data.features.forEach(function (f) {
+              var coords = f.geometry && f.geometry.coordinates; if (!coords) return;
+              var lng = Array.isArray(coords[0]) ? coords[0][0] : coords[0];
+              var lat = Array.isArray(coords[0]) ? coords[0][1] : coords[1];
+              var p = f.properties || {};
+              // Détecter un résultat de type cadastre
+              var isCad = (p.type === 'cadastre') || (p.type === 'lot');
+              // Numéro de lot — iCherche retourne dans plusieurs champs selon la version
+              var lotNo = p.no_lot || p.NO_LOT || p.nolot || p.lot || (isCad ? (p.recherche || p.nom) : null);
+              if (lotNo) lotNo = String(lotNo).replace(/\s+/g, ' ').trim();
+              // Municipalité et MRC
+              var muni = p.nommun || p.nom_mun || p.municipalite || p.mun_nom || p.mun || null;
+              var mrc = p.mrc_s || p.mrc_nom || p.nom_mrc || p.mrc || null;
+              items.push({
+                name: p.recherche || p.nom || p.name || query,
+                type: p.type || f.geometry.type,
+                lng: lng,
+                lat: lat,
+                isCadastre: isCad,
+                lotNo: lotNo || null,
+                muni: muni || null,
+                mrc: mrc || null
+              });
+            });
+            return items;
+          });
+      }
+
+      // ── LIENS EXTERNES (cadastre) ─────────────────────────────────────────────
+      function getRegistreUrl(lotNo) {
+        // Registre foncier du Québec — recherche par numéro de lot
+        var base = 'https://registrefoncier.gouv.qc.ca/sirf/index.do';
+        if (lotNo) return base + '#/recherche/lot/' + encodeURIComponent(lotNo.replace(/\s/g, ''));
+        return base;
+      }
+
+      function getMatriceUrl(mrc) {
+        // Tente de retourner le portail spécifique à la MRC; sinon : page MAMH listant tous les portails
+        if (!mrc) return 'https://www.mamh.gouv.qc.ca/evaluation-fonciere/role-devaluation-fonciere/acces-au-role/';
+        // Normaliser : minuscules, sans accents
+        var k = mrc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '-');
+        var known = {
+          'maskinonge': 'https://maskinonge.maps.arcgis.com/apps/webappviewer/index.html',
+          'matawinie': 'https://matawinie.maps.arcgis.com/apps/webappviewer/index.html',
+          'laurentides': 'https://www.mrclaurentides.qc.ca/services/evaluation-fonciere/',
+          'antoine-labelle': 'https://www.mrcat.qc.ca/citoyens/evaluation-fonciere/',
+          'papineau': 'https://www.mrcpapineau.com/fr/services/evaluation-fonciere/',
+          'argenteuil': 'https://argenteuil.maps.arcgis.com/apps/webappviewer/index.html',
+          'deux-montagnes': 'https://deuxmontagnes.maps.arcgis.com/apps/webappviewer/index.html',
+          'the-high-laurentians': 'https://hautelaurentide.maps.arcgis.com/apps/webappviewer/index.html',
+          'pontiac': 'https://pontiac.maps.arcgis.com/apps/webappviewer/index.html',
+          'vallee-de-la-gatineau': 'https://mrc-vg.org/services/evaluation-fonciere/',
+          'portneuf': 'https://portneuf.maps.arcgis.com/apps/webappviewer/index.html',
+          'mekinac': 'https://mekinac.maps.arcgis.com/apps/webappviewer/index.html',
+          'shawinigan': 'https://ville.shawinigan.qc.ca/rolefoncier/',
+          'lac-saint-jean-est': 'https://lacstjeanest.maps.arcgis.com/apps/webappviewer/index.html',
+          'domaine-du-roy': 'https://domainedroy.maps.arcgis.com/apps/webappviewer/index.html',
+          'maria-chapdelaine': 'https://mariachapdelaine.maps.arcgis.com/apps/webappviewer/index.html'
+        };
+        for (var key in known) {
+          if (k.indexOf(key) !== -1) return known[key];
+        }
+        return 'https://www.mamh.gouv.qc.ca/evaluation-fonciere/role-devaluation-fonciere/acces-au-role/';
+      }
+
+      function buildCadastrePopup(lotNo, muni, mrc, lat, lng) {
+        var html = '<div class="popup-type">Cadastre rénové du Québec</div>';
+        html += '<div class="popup-title">Lot ' + escXml(lotNo) + '</div>';
+        html += '<div class="popup-cad-lotno" title="Cliquer pour sélectionner">' + escXml(lotNo) + '</div>';
+        html += '<div class="popup-cad-copy-hint">Sélectionnez pour copier</div>';
+        if (muni) html += '<div class="popup-row" style="margin-top:8px"><span class="label">Municipalité</span><span>' + escXml(muni) + '</span></div>';
+        if (mrc) html += '<div class="popup-row"><span class="label">MRC</span><span>' + escXml(mrc) + '</span></div>';
+        html += '<div class="popup-row"><span class="label">Coord.</span><span>' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</span></div>';
+        html += '<div class="popup-cad-links">' +
+          '<a class="popup-cad-link" href="' + getMatriceUrl(mrc) + '" target="_blank" rel="noopener" title="Rôle foncier, propriétaires, évaluation">🗺 Matrice graphique</a>' +
+          '<a class="popup-cad-link" href="' + getRegistreUrl(lotNo) + '" target="_blank" rel="noopener" title="Actes d\'inscription, droits réels">📜 Registre foncier</a>' +
+          '</div>';
+        html += '<div class="regl-disclaimer" style="margin-top:8px">Info propriétaire : matrice graphique de votre MRC</div>';
+        return html;
+      }
+
+      function tryCoordinateSearch(query) {
+        var m = query.trim().match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/); if (!m) return null;
+        var a = parseFloat(m[1]), b = parseFloat(m[2]), lat, lng;
+        if (a >= 44 && a <= 63 && b >= -80 && b <= -57) { lat = a; lng = b; } else if (b >= 44 && b <= 63 && a >= -80 && a <= -57) { lat = b; lng = a; } else return null;
+        return [{ name: lat.toFixed(4) + ', ' + lng.toFixed(4), type: 'Coordonnées', lat: lat, lng: lng }];
+      }
+
+      function searchLocalLayers(query) {
+        var results = [], q = query.toLowerCase();
+        ['zec', 'pourvoirie', 'reserve', 'parc', 'zones'].forEach(function (key) {
+          var src = map.getSource('src-' + key); if (!src || !src._data || !src._data.features) return;
+          src._data.features.forEach(function (f) {
+            var nom = nameFromProps(f.properties || {}); if (nom.toLowerCase().indexOf(q) === -1) return;
+            var coords = f.geometry && f.geometry.coordinates; if (!coords) return;
+            var pts = f.geometry.type === 'Polygon' ? coords[0] : f.geometry.type === 'MultiPolygon' ? coords[0][0] : null; if (!pts || !pts.length) return;
+            var sumLng = 0, sumLat = 0; pts.forEach(function (p) { sumLng += p[0]; sumLat += p[1]; });
+            results.push({ name: nom, type: typeLabel(key), lng: sumLng / pts.length, lat: sumLat / pts.length });
+          });
+        });
+        return results.slice(0, 6);
+      }
+
+      // ── INDEX CADASTRAL LOCAL (lot_index.json) ───────────────────────────────
+      // Généré par pipeline/build_lot_index.py à partir du shapefile MERN.
+      // Format : { "5778374": [45.12345, -74.45678], … }  (lat, lng)
+      // Chargé une seule fois à la première recherche cadastrale, mis en cache.
+      var _lotIndex = null;   // null=non tenté | false=absent | {}=chargé
+      var _lotIndexPrm = null;   // Promise en cours
+
+      function loadLotIndex() {
+        if (_lotIndex !== null) return Promise.resolve(_lotIndex);
+        if (_lotIndexPrm) return _lotIndexPrm;
+        _lotIndexPrm = fetch('./lot_index.json')
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (data) { _lotIndex = data; _lotIndexPrm = null; return data; })
+          .catch(function () { _lotIndex = false; _lotIndexPrm = null; return false; });
+        return _lotIndexPrm;
+      }
+
+      function lotCardOnly(lotNo) {
+        return { isCadastre: true, noLocation: true, lotNo: lotNo, name: lotNo, muni: null, mrc: null };
+      }
+
+      function searchOneLot(lotNo) {
+        // Normaliser le numéro de lot recherché (enlever espaces)
+        var normalizedSearch = lotNo.toString().replace(/\s/g, '');
+
+        // 1. Chercher D'ABORD dans le cadastre des zones de chasse (priorité pour avoir la zone)
+        if (cadastreLocalData && cadastreLocalData.features) {
+          var found = cadastreLocalData.features.find(function (f) {
+            var props = f.properties || {};
+            var noLot = (props.NO_LOT || '').toString().replace(/\s/g, '');
+            return noLot === normalizedSearch;
+          });
+          if (found && found.geometry) {
+            var coords = found.geometry.coordinates;
+            // Calculer le centroïde
+            var lon, lat;
+            if (found.geometry.type === 'Polygon') {
+              var ring = coords[0];
+              var sumLon = 0, sumLat = 0;
+              ring.forEach(function (c) { sumLon += c[0]; sumLat += c[1]; });
+              lon = sumLon / ring.length;
+              lat = sumLat / ring.length;
+            } else if (found.geometry.type === 'MultiPolygon') {
+              var ring = coords[0][0];
+              var sumLon = 0, sumLat = 0;
+              ring.forEach(function (c) { sumLon += c[0]; sumLat += c[1]; });
+              lon = sumLon / ring.length;
+              lat = sumLat / ring.length;
+            }
+            if (lon && lat) {
+              return Promise.resolve({
+                isCadastre: true, noLocation: false, name: lotNo, type: 'cadastre',
+                lotNo: lotNo, muni: null, mrc: null, lat: lat, lng: lon,
+                zoneChasse: found.properties.ZONE_CHASSE,
+                source: 'zones',
+                feature: found // Pour afficher le polygone
+              });
+            }
+          }
+        }
+
+        // 2. Chercher dans l'index local lot_index.json (sans info de zone)
+        return loadLotIndex().then(function (index) {
+          // Chercher avec le numéro normalisé (sans espaces)
+          var foundInIndex = null;
+          if (index) {
+            // Essayer d'abord directement
+            if (index[normalizedSearch]) {
+              foundInIndex = index[normalizedSearch];
+            } else {
+              // Essayer avec les clés de l'index (enlever espaces des clés aussi)
+              for (var key in index) {
+                if (key.replace(/\s/g, '') === normalizedSearch) {
+                  foundInIndex = index[key];
+                  break;
+                }
+              }
+            }
+          }
+
+          if (foundInIndex) {
+            var c = foundInIndex; // [lat, lng]
+            return {
+              isCadastre: true, noLocation: false, name: lotNo, type: 'cadastre',
+              lotNo: lotNo, muni: null, mrc: null, lat: c[0], lng: c[1], source: 'index'
+            };
+          }
+
+          // 3. Fallback: lot sans localisation
+          return lotCardOnly(lotNo);
+        }).catch(function () { return lotCardOnly(lotNo); });
+      }
+
+      function searchByLotNumbers(lots) {
+        var msg = (_lotIndex === null) ? 'Chargement de l\'index cadastral…' : 'Recherche cadastrale…';
+        searchResults.innerHTML = '<div class="search-empty">' + msg + '</div>';
+        var unique = [];
+        lots.forEach(function (l) { if (unique.indexOf(l) === -1) unique.push(l); });
+        unique = unique.slice(0, 6);
+        Promise.all(unique.map(searchOneLot)).then(showSearchResults);
+      }
+
+      function doSearch(query) {
+        query = query.trim(); if (query.length < 2) { searchResults.innerHTML = ''; return; }
+
+        // 1. Coordonnées GPS (ex : 47.6,-73.4)
+        var coordResult = tryCoordinateSearch(query);
+        if (coordResult) { showSearchResults(coordResult); return; }
+
+        // 2. Numéro(s) de lot cadastral : 6-8 chiffres, séparés par virgule/point-virgule/espace
+        //    Exemples : "5778374"   "5778374,5854526"   "5778374 5854526"
+        if (/^[\d\s,;]+$/.test(query)) {
+          var lots = query.match(/\d{6,8}/g);
+          if (lots && lots.length) {
+            searchByLotNumbers(lots);
+            return;
+          }
+        }
+
+        // 3. Recherche générale (nom de lieu, municipalité, MRC, adresse…)
+        searchResults.innerHTML = '<div class="search-empty">Recherche…</div>';
+        iChercheSearch(query).then(showSearchResults).catch(function () {
+          var local = searchLocalLayers(query); showSearchResults(local.length ? local : null);
+        });
+      }
+
+      searchInput.addEventListener('input', function () { clearTimeout(searchDebounce); searchDebounce = setTimeout(function () { doSearch(searchInput.value); }, 400); });
+      searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
+
+    })();
+  </script>
+
+</body>
+
+</html>
