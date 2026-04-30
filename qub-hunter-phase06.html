@@ -1174,6 +1174,58 @@
       padding: 4px 0 8px;
     }
 
+    /* ── CARNET DE CHASSE ── */
+    .hunt-log-item {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(240, 232, 214, 0.5);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border-left: 3px solid var(--rust);
+    }
+
+    .hunt-log-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .hunt-log-info {
+      flex: 1;
+    }
+
+    .hunt-log-species {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--forest);
+    }
+
+    .hunt-log-details {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--bark-light);
+      margin-top: 2px;
+    }
+
+    .hunt-log-date {
+      font-size: 9px;
+      color: var(--bark-light);
+      margin-top: 4px;
+    }
+
+    .hunt-log-delete {
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: transparent;
+      color: var(--rust);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     /* ── COORDINATES ── */
     .compass-readout {
       position: absolute;
@@ -1721,6 +1773,18 @@
           <button class="wp-footer-btn export" id="exportGpxBtn">↓ GPX</button>
           <button class="wp-footer-btn export" id="exportKmlBtn">↓ KML</button>
           <button class="wp-footer-btn clear" id="clearWaypointsBtn">✕ Tout</button>
+        </div>
+      </div>
+
+      <!-- CARNET DE CHASSE -->
+      <div class="layer-section">
+        <div class="section-label">Carnet de chasse</div>
+        <div id="huntLogList">
+          <div class="wp-empty">Aucune entrée.<br>Enregistrez vos prises ici.</div>
+        </div>
+        <div class="wp-footer">
+          <button class="wp-footer-btn export" id="addHuntLogBtn">+ Ajouter</button>
+          <button class="wp-footer-btn clear" id="clearHuntLogBtn">✕ Tout</button>
         </div>
       </div>
 
@@ -2313,6 +2377,73 @@
       var waypoints = [];
       var waypointMarkers = {};  // id → MapLibre Marker instance
 
+      // ── CARNET DE CHASSE — STOCKAGE ───────────────────────────────────────────
+      var HUNT_LOG_KEY = 'qub-hunter-hunt-log-v1';
+      var huntLog = [];
+
+      function saveHuntLog() {
+        try { localStorage.setItem(HUNT_LOG_KEY, JSON.stringify(huntLog)); } catch (e) { }
+      }
+
+      function loadHuntLogFromStorage() {
+        try {
+          var raw = localStorage.getItem(HUNT_LOG_KEY);
+          if (raw) huntLog = JSON.parse(raw);
+        } catch (e) { huntLog = []; }
+      }
+
+      function renderHuntLogList() {
+        var container = $('huntLogList');
+        if (!container) return;
+
+        if (huntLog.length === 0) {
+          container.innerHTML = '<div class="wp-empty">Aucune entrée.<br>Enregistrez vos prises ici.</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        huntLog.forEach(function (entry, index) {
+          var div = document.createElement('div');
+          div.className = 'hunt-log-item';
+          div.innerHTML =
+            '<div class="hunt-log-icon">' + (entry.icon || '🦌') + '</div>' +
+            '<div class="hunt-log-info">' +
+            '<div class="hunt-log-species">' + escXml(entry.species || 'Sans nom') + '</div>' +
+            '<div class="hunt-log-details">' + escXml(entry.details || '') + '</div>' +
+            '<div class="hunt-log-date">' + escXml(entry.date || '') + '</div>' +
+            '</div>' +
+            '<button class="hunt-log-delete" data-index="' + index + '">✕</button>';
+          container.appendChild(div);
+        });
+
+        // Add delete event listeners
+        container.querySelectorAll('.hunt-log-delete').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var idx = parseInt(this.getAttribute('data-index'));
+            if (confirm('Supprimer cette entrée ?')) {
+              huntLog.splice(idx, 1);
+              saveHuntLog();
+              renderHuntLogList();
+              showToast('Entrée supprimée');
+            }
+          });
+        });
+      }
+
+      function addHuntLogEntry(species, details, icon) {
+        var now = new Date();
+        var dateStr = now.toLocaleDateString('fr-CA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        huntLog.push({
+          species: species,
+          details: details,
+          icon: icon,
+          date: dateStr
+        });
+        saveHuntLog();
+        renderHuntLogList();
+        showToast('Entrée ajoutée');
+      }
+
       function saveWaypoints() {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(waypoints)); } catch (e) { }
       }
@@ -2610,6 +2741,24 @@
         saveWaypoints();
         renderWaypointList();
         showToast('Tous les repères effacés');
+      });
+
+      // ── CARNET DE CHASSE ───────────────────────────────────────────────────────
+      $('addHuntLogBtn').addEventListener('click', function () {
+        var species = prompt('Espèce (ex: Cerf, Orignal, Ours):');
+        if (!species) return;
+        var details = prompt('Détails (ex: Poids, Sexe, Lieu):', '');
+        var icon = prompt('Icône (ex: 🦌, 🐻, 🦌):', '🦌') || '🦌';
+        addHuntLogEntry(species, details, icon);
+      });
+
+      $('clearHuntLogBtn').addEventListener('click', function () {
+        if (!huntLog.length) { showToast('Carnet vide'); return; }
+        if (!confirm('Supprimer toutes les entrées ?')) return;
+        huntLog = [];
+        saveHuntLog();
+        renderHuntLogList();
+        showToast('Carnet vidé');
       });
 
       // ── HELPER XML ESCAPE ────────────────────────────────────────────────────
@@ -3164,6 +3313,10 @@
         loadWaypointsFromStorage();
         for (var i = 0; i < waypoints.length; i++) { addWaypointToMap(waypoints[i]); }
         renderWaypointList();
+
+        // Charger le carnet de chasse
+        loadHuntLogFromStorage();
+        renderHuntLogList();
       });
 
       map.on('styledata', function () { if (!map.getSource('src-zec')) loadAllLayers(); });
