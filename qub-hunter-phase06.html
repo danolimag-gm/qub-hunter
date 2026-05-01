@@ -1952,6 +1952,64 @@
         </div>
       </div>
 
+      <!-- VÉGÉTATION -->
+      <div class="layer-section">
+        <div class="section-label">Végétation</div>
+
+        <!-- Types forestiers -->
+        <div class="layer-row" style="opacity:0.5">
+          <div class="layer-swatch" style="background:var(--forest);border:1px solid var(--forest-dark)"></div>
+          <div class="layer-info">
+            <div class="layer-name">Types forestiers</div>
+            <div class="layer-desc" id="desc-forest-types">indisponible (WMS 503)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="forest-types" disabled><span
+              class="toggle-slider"></span></label>
+        </div>
+
+        <!-- Occupation du sol -->
+        <div class="layer-row" style="opacity:0.5">
+          <div class="layer-swatch" style="background:var(--moss);border:1px solid var(--forest-dark)"></div>
+          <div class="layer-info">
+            <div class="layer-name">Occupation du sol</div>
+            <div class="layer-desc" id="desc-land-use">indisponible (WMS)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="land-use" disabled><span
+              class="toggle-slider"></span></label>
+        </div>
+
+        <!-- Habitat orignal -->
+        <div class="layer-row" style="opacity:0.5">
+          <div class="layer-swatch" style="background:var(--rust);border:1px solid var(--forest-dark)"></div>
+          <div class="layer-info">
+            <div class="layer-name">Habitat orignal</div>
+            <div class="layer-desc" id="desc-moose-habitat">indisponible (WMS)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="moose-habit" disabled><span
+              class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- SENTIERS -->
+      <div class="layer-section">
+        <div class="section-label">Sentiers</div>
+
+        <div class="layer-row">
+          <div class="layer-swatch"
+            style="background:linear-gradient(90deg, #2d5016 0%, #2a5c8a 33%, #a04a28 66%, #b88a3e 100%);border:1px solid var(--forest-dark)">
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Tous les sentiers</div>
+            <div class="layer-desc" id="desc-trails">randonnée, motoneige, VTT, vélo</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="trails"><span class="toggle-slider"></span></label>
+        </div>
+        <div
+          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
+          Données OpenStreetMap (OSM) • Couleurs par type de sentier
+        </div>
+      </div>
+
       <!-- RÉGLEMENTATION -->
       <div class="layer-section">
         <div class="section-label">Réglementation</div>
@@ -3334,6 +3392,153 @@
         map.on('mouseleave', 'fill-autochtone', function () { map.getCanvas().style.cursor = ''; });
       }
 
+      // ── VÉGÉTATION ─────────────────────────────────────────────────────────────
+      function loadForestTypesLayer() {
+        var checkbox = document.querySelector('input[data-layer="forest-types"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+        var descEl = $('desc-forest-types');
+
+        // WMS service from MFFP (Ministère des Ressources naturelles et des Forêts)
+        // Service: Données écoforestières MRNF-DIF (WMS)
+        // URL: https://geoegl.msp.gouv.qc.ca/ws/mffpecofor.fcgi
+        // Layer: produits_ecoforestiers (Peuplements écoforestiers)
+        var wmsUrl = 'https://geoegl.msp.gouv.qc.ca/ws/mffpecofor.fcgi';
+        var wmsLayer = 'produits_ecoforestiers';
+
+        map.addSource('src-forest-types', {
+          type: 'raster',
+          tiles: [
+            wmsUrl + '?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=' + wmsLayer +
+            '&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png'
+          ],
+          tileSize: 256,
+          attribution: ' MRNF — Données écoforestières'
+        });
+
+        map.addLayer({
+          id: 'raster-forest-types',
+          type: 'raster',
+          source: 'src-forest-types',
+          paint: {
+            'raster-opacity': 0.6
+          },
+          layout: { 'visibility': isVisible ? 'visible' : 'none' }
+        });
+
+        if (descEl) descEl.textContent = 'WMS MFFP (en ligne ✓)';
+      }
+
+      function loadLandUseLayer() {
+        var checkbox = document.querySelector('input[data-layer="land-use"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+        var descEl = $('desc-land-use');
+
+        // TODO: Télécharger les données depuis Données Québec et placer dans ./data/
+        // URL: https://www.donneesquebec.ca/recherche/dataset/cartographie-de-l-occupation-des-terres-du-quebec
+        // Format: GeoJSON
+        var dataFile = './data/land_use_quebec.geojson';
+
+        fetch(dataFile)
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            map.addSource('src-land-use', { type: 'geojson', data: data });
+            map.addLayer({
+              id: 'fill-land-use',
+              type: 'fill',
+              source: 'src-land-use',
+              paint: {
+                'fill-color': ['match', ['get', 'classe'],
+                  'Forêt', '#228b22',
+                  'Agricole', '#f4a460',
+                  'Urbain', '#808080',
+                  'Eau', '#4169e1',
+                  'Marécage', '#8fbc8f',
+                  '#cccccc'
+                ],
+                'fill-opacity': 0.3
+              },
+              layout: { 'visibility': isVisible ? 'visible' : 'none' }
+            });
+            if (descEl) descEl.textContent = data.features.length + ' polygones (local ✓)';
+          })
+          .catch(function () {
+            if (descEl) descEl.innerHTML = 'Fichier requis: <code style="color:var(--moss)">./data/land_use_quebec.geojson</code>';
+          });
+      }
+
+      function loadMooseHabitatLayer() {
+        var checkbox = document.querySelector('input[data-layer="moose-habitat"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+        var descEl = $('desc-moose-habitat');
+
+        // TODO: Explorer le dataset Habitats fauniques sur Données Québec
+        // URL: https://www.donneesquebec.ca/recherche/dataset/habitats-fauniques
+        var dataFile = './data/moose_habitat_quebec.geojson';
+
+        fetch(dataFile)
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            map.addSource('src-moose-habitat', { type: 'geojson', data: data });
+            map.addLayer({
+              id: 'fill-moose-habitat',
+              type: 'fill',
+              source: 'src-moose-habitat',
+              paint: {
+                'fill-color': ['match', ['get', 'qualite'],
+                  'Excellent', '#8b4513',
+                  'Bon', '#a0522d',
+                  'Moyen', '#cd853f',
+                  '#cccccc'
+                ],
+                'fill-opacity': 0.5
+              },
+              layout: { 'visibility': isVisible ? 'visible' : 'none' }
+            });
+            if (descEl) descEl.textContent = data.features.length + ' polygones (local ✓)';
+          })
+          .catch(function () {
+            if (descEl) descEl.innerHTML = 'Fichier requis: <code style="color:var(--moss)">./data/moose_habitat_quebec.geojson</code>';
+          });
+      }
+
+      // ── SENTIERS ─────────────────────────────────────────────────────────────
+      function loadTrailsLayer() {
+        var checkbox = document.querySelector('input[data-layer="trails"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+        var descEl = $('desc-trails');
+
+        var dataFile = './data/trails_quebec.geojson';
+
+        fetch(dataFile)
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            map.addSource('src-trails', { type: 'geojson', data: data });
+            map.addLayer({
+              id: 'line-trails',
+              type: 'line',
+              source: 'src-trails',
+              paint: {
+                'line-color': ['match', ['get', 'type'],
+                  'hiking', '#2d5016',
+                  'snowmobile', '#2a5c8a',
+                  'atv', '#a04a28',
+                  'bicycle', '#b88a3e',
+                  'horse', '#8b4513',
+                  'ski', '#4682b4',
+                  '#666666'
+                ],
+                'line-width': 2,
+                'line-opacity': 0.8
+              },
+              layout: { 'visibility': isVisible ? 'visible' : 'none' }
+            });
+            if (descEl) descEl.textContent = data.features.length + ' sentiers (OSM)';
+          })
+          .catch(function () {
+            if (descEl) descEl.innerHTML = 'Fichier requis: <code style="color:var(--moss)">./data/trails_quebec.geojson</code>';
+          });
+      }
+
       // ── ZONE 300 M (cercle autour de la position GPS) ────────────────────────
       var circle300mActive = false;
       var gpsLatLng = null;
@@ -3398,6 +3603,10 @@
         Object.keys(MRNF_LAYERS).forEach(function (key) { loadMRNFLayer(key, MRNF_LAYERS[key]); });
         loadCadastre();
         loadIndigenousLayer();
+        // loadForestTypesLayer(); // WMS MFFP indisponible (503)
+        loadTrailsLayer();
+        // loadLandUseLayer(); // WMS non disponible - données en format raster uniquement
+        // loadMooseHabitatLayer(); // WMS non disponible - accès restreint sur Données Québec
         $('legend').classList.add('visible');
         updateOfflinePanel();
       }
@@ -3412,7 +3621,18 @@
             var input = inputs[i];
             var key = input.getAttribute('data-layer');
             var vis = input.checked ? 'visible' : 'none';
-            var ids = key === 'cadastre' ? ['line-cadastre', 'label-cadastre'] : ['fill-' + key, 'line-' + key];
+            var ids;
+            if (key === 'cadastre') {
+              ids = ['line-cadastre', 'label-cadastre'];
+            } else if (key === 'forest-types') {
+              ids = ['raster-forest-types'];
+            } else if (key === 'trails') {
+              ids = ['line-trails'];
+            } else if (key === 'land-use' || key === 'moose-habitat') {
+              ids = ['fill-' + key];
+            } else {
+              ids = ['fill-' + key, 'line-' + key];
+            }
             ids.forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
           }
         }, 500);
@@ -3567,7 +3787,18 @@
           input.addEventListener('change', function () {
             var key = input.getAttribute('data-layer');
             var vis = input.checked ? 'visible' : 'none';
-            var ids = key === 'cadastre' ? ['line-cadastre', 'label-cadastre'] : ['fill-' + key, 'line-' + key];
+            var ids;
+            if (key === 'cadastre') {
+              ids = ['line-cadastre', 'label-cadastre'];
+            } else if (key === 'forest-types') {
+              ids = ['raster-forest-types'];
+            } else if (key === 'trails') {
+              ids = ['line-trails'];
+            } else if (key === 'land-use' || key === 'moose-habitat') {
+              ids = ['fill-' + key];
+            } else {
+              ids = ['fill-' + key, 'line-' + key];
+            }
             ids.forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
           });
         })(inputs[i]);
