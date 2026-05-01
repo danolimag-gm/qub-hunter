@@ -543,7 +543,7 @@
     .toggle {
       position: relative;
       width: 44px;
-      height: 26px;
+      height: 44px;
       flex-shrink: 0;
     }
 
@@ -557,7 +557,7 @@
       position: absolute;
       inset: 0;
       background: var(--paper-aged);
-      border-radius: 26px;
+      border-radius: 22px;
       cursor: pointer;
       transition: background 0.2s;
     }
@@ -567,8 +567,8 @@
       position: absolute;
       width: 20px;
       height: 20px;
-      left: 3px;
-      top: 3px;
+      left: 12px;
+      top: 12px;
       background: var(--paper);
       border-radius: 50%;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -580,7 +580,7 @@
     }
 
     .toggle input:checked+.toggle-slider::before {
-      transform: translateX(18px);
+      transform: translateX(0);
     }
 
     /* ── SECTION HORS-LIGNE ── */
@@ -780,7 +780,7 @@
     /* ── FABs ── */
     .geo-fab {
       position: absolute;
-      right: 14px;
+      left: 14px;
       bottom: 110px;
       z-index: 9;
       width: 50px;
@@ -809,7 +809,7 @@
     /* ── WAYPOINT FAB ── */
     .wp-fab {
       position: absolute;
-      right: 14px;
+      left: 14px;
       bottom: 170px;
       z-index: 9;
       width: 50px;
@@ -1254,7 +1254,7 @@
     /* ── LEGEND ── */
     .legend {
       position: absolute;
-      left: 14px;
+      right: 14px;
       bottom: 110px;
       z-index: 8;
       background: rgba(240, 232, 214, 0.96);
@@ -1279,6 +1279,43 @@
       align-items: center;
       gap: 8px;
       margin: 3px 0;
+    }
+
+    /* ── ACCESSIBILITY: REDUCED MOTION ── */
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .spinner {
+        animation: none;
+      }
+
+      .net-dot {
+        animation: none;
+      }
+
+      .lp-ripple {
+        animation: none;
+      }
+    }
+
+    /* ── ACCESSIBILITY: FOCUS INDICATORS ── */
+    button:focus-visible,
+    input:focus-visible,
+    .toggle-slider:focus-within,
+    .cat-btn:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+
+    button:focus:not(:focus-visible) {
+      outline: none;
     }
 
     .legend-swatch {
@@ -1415,10 +1452,14 @@
         border-radius: 0 8px 8px 0;
         border-right: 1px solid var(--line);
         border-top: 1px solid var(--line);
-        transform: translateX(0) !important;
+        transform: translateX(0);
         bottom: 0;
         top: 0;
         padding-top: calc(env(safe-area-inset-top) + 80px);
+      }
+
+      .panel.collapsed {
+        transform: translateX(-100%);
       }
 
       .panel-handle {
@@ -1426,7 +1467,8 @@
       }
 
       .panel-content {
-        max-height: none;
+        max-height: calc(100vh - env(safe-area-inset-top) - 80px);
+        overflow-y: auto;
         flex: 1;
       }
 
@@ -1435,16 +1477,18 @@
       }
 
       .geo-fab {
+        left: 394px;
         bottom: 30px;
       }
 
       .wp-fab {
+        left: 394px;
         bottom: 90px;
       }
 
       .legend {
         bottom: 30px;
-        left: 394px;
+        right: 14px;
       }
 
       .loading-badge {
@@ -1453,6 +1497,35 @@
 
       .search-overlay {
         left: 380px;
+      }
+
+      .panel-toggle-desktop {
+        position: absolute;
+        left: 14px;
+        top: 90px;
+        width: 40px;
+        height: 40px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        z-index: 100;
+        box-shadow: 0 2px 8px rgba(29, 40, 24, 0.15);
+        transition: all 0.2s;
+      }
+
+      .panel-toggle-desktop:hover {
+        background: var(--paper-aged);
+      }
+
+      .panel.collapsed~.panel-toggle-desktop {
+        display: grid;
+      }
+
+      .panel:not(.collapsed)~.panel-toggle-desktop {
+        display: none;
       }
     }
 
@@ -1648,6 +1721,14 @@
     </svg>
   </button>
 
+  <!-- DESKTOP PANEL TOGGLE -->
+  <button class="panel-toggle-desktop" id="panelToggleDesktop" aria-label="Ouvrir le panneau">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </button>
+
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
@@ -1660,72 +1741,72 @@
 
       <div class="modal-section-label">Catégorie</div>
       <div class="cat-grid">
-        <button class="cat-btn selected" data-cat="affut">
-          <span class="cat-emoji">🎯</span>
+        <button class="cat-btn selected" data-cat="affut" aria-label="Catégorie Affût">
+          <span class="cat-emoji" aria-hidden="true">🎯</span>
           <span class="cat-name">Affût</span>
         </button>
-        <button class="cat-btn" data-cat="passage">
-          <span class="cat-emoji">🐾</span>
+        <button class="cat-btn" data-cat="passage" aria-label="Catégorie Passage">
+          <span class="cat-emoji" aria-hidden="true">🐾</span>
           <span class="cat-name">Passage</span>
         </button>
-        <button class="cat-btn" data-cat="trace">
-          <span class="cat-emoji">👣</span>
+        <button class="cat-btn" data-cat="trace" aria-label="Catégorie Trace">
+          <span class="cat-emoji" aria-hidden="true">👣</span>
           <span class="cat-name">Trace</span>
         </button>
-        <button class="cat-btn" data-cat="tir">
-          <span class="cat-emoji">🏹</span>
+        <button class="cat-btn" data-cat="tir" aria-label="Catégorie Tir">
+          <span class="cat-emoji" aria-hidden="true">🏹</span>
           <span class="cat-name">Tir</span>
         </button>
-        <button class="cat-btn" data-cat="ours">
-          <span class="cat-emoji">🐻</span>
+        <button class="cat-btn" data-cat="ours" aria-label="Catégorie Ours">
+          <span class="cat-emoji" aria-hidden="true">🐻</span>
           <span class="cat-name">Ours</span>
         </button>
-        <button class="cat-btn" data-cat="orignal">
-          <span class="cat-emoji">🫎</span>
+        <button class="cat-btn" data-cat="orignal" aria-label="Catégorie Orignal">
+          <span class="cat-emoji" aria-hidden="true">🫎</span>
           <span class="cat-name">Orignal</span>
         </button>
-        <button class="cat-btn" data-cat="sanglier">
-          <span class="cat-emoji">🐗</span>
+        <button class="cat-btn" data-cat="sanglier" aria-label="Catégorie Sanglier">
+          <span class="cat-emoji" aria-hidden="true">🐗</span>
           <span class="cat-name">Sanglier</span>
         </button>
-        <button class="cat-btn" data-cat="dindon">
-          <span class="cat-emoji">🦃</span>
+        <button class="cat-btn" data-cat="dindon" aria-label="Catégorie Dindon">
+          <span class="cat-emoji" aria-hidden="true">🦃</span>
           <span class="cat-name">Dindon</span>
         </button>
-        <button class="cat-btn" data-cat="cerf">
-          <span class="cat-emoji">🦌</span>
+        <button class="cat-btn" data-cat="cerf" aria-label="Catégorie Cerf">
+          <span class="cat-emoji" aria-hidden="true">🦌</span>
           <span class="cat-name">Cerf</span>
         </button>
-        <button class="cat-btn" data-cat="cache">
-          <span class="cat-emoji">🎒</span>
+        <button class="cat-btn" data-cat="cache" aria-label="Catégorie Cache">
+          <span class="cat-emoji" aria-hidden="true">🎒</span>
           <span class="cat-name">Cache</span>
         </button>
-        <button class="cat-btn" data-cat="tente">
-          <span class="cat-emoji">⛺</span>
+        <button class="cat-btn" data-cat="tente" aria-label="Catégorie Tente">
+          <span class="cat-emoji" aria-hidden="true">⛺</span>
           <span class="cat-name">Tente</span>
         </button>
-        <button class="cat-btn" data-cat="chalet">
-          <span class="cat-emoji">🏠</span>
+        <button class="cat-btn" data-cat="chalet" aria-label="Catégorie Chalet">
+          <span class="cat-emoji" aria-hidden="true">🏠</span>
           <span class="cat-name">Chalet</span>
         </button>
-        <button class="cat-btn" data-cat="roulotte">
-          <span class="cat-emoji">🚐</span>
+        <button class="cat-btn" data-cat="roulotte" aria-label="Catégorie Roulotte">
+          <span class="cat-emoji" aria-hidden="true">🚐</span>
           <span class="cat-name">Roulotte</span>
         </button>
-        <button class="cat-btn" data-cat="eau">
-          <span class="cat-emoji">💧</span>
+        <button class="cat-btn" data-cat="eau" aria-label="Catégorie Eau">
+          <span class="cat-emoji" aria-hidden="true">💧</span>
           <span class="cat-name">Eau</span>
         </button>
-        <button class="cat-btn" data-cat="acces">
-          <span class="cat-emoji">🚘</span>
+        <button class="cat-btn" data-cat="acces" aria-label="Catégorie Véhicule">
+          <span class="cat-emoji" aria-hidden="true">🚘</span>
           <span class="cat-name">Véhicule</span>
         </button>
-        <button class="cat-btn" data-cat="sentier">
-          <span class="cat-emoji">🥾</span>
+        <button class="cat-btn" data-cat="sentier" aria-label="Catégorie Sentier">
+          <span class="cat-emoji" aria-hidden="true">🥾</span>
           <span class="cat-name">Sentier</span>
         </button>
-        <button class="cat-btn" data-cat="danger">
-          <span class="cat-emoji">⚠️</span>
+        <button class="cat-btn" data-cat="danger" aria-label="Catégorie Danger">
+          <span class="cat-emoji" aria-hidden="true">⚠️</span>
           <span class="cat-name">Danger</span>
         </button>
       </div>
@@ -1746,7 +1827,7 @@
   </div>
 
   <!-- PANEL -->
-  <aside class="panel" id="panel">
+  <aside class="panel open" id="panel">
     <div class="panel-handle" id="panelHandle"></div>
     <div class="panel-summary">
       <div>
@@ -2767,13 +2848,15 @@
       // ── TUILES ──────────────────────────────────────────────────────────────
       var TILE_SOURCES = [
         { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
+        { name: 'OpenTopoMap (relief)', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'], attrib: '© OpenTopoMap (CC-BY-SA) © OSM' },
         { name: 'OSM', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], attrib: '© OpenStreetMap' },
         { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' }
       ];
       var currentSourceIdx = 0;
 
       function makeStyle(src) {
-        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: 256, attribution: src.attrib, maxzoom: 19 } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
+        var tileSize = src.tileSize || 256;
+        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: 19 } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
       }
       function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
       setSourceLabel(TILE_SOURCES[0].name);
@@ -2862,8 +2945,13 @@
         var sourceId = 'src-' + key, fillId = 'fill-' + key, lineId = 'line-' + key;
         if (map.getSource(sourceId)) { map.getSource(sourceId).setData(geojson); return; }
         map.addSource(sourceId, { type: 'geojson', data: geojson });
-        map.addLayer({ id: fillId, type: 'fill', source: sourceId, paint: { 'fill-color': color, 'fill-opacity': fillOpacity } });
-        map.addLayer({ id: lineId, type: 'line', source: sourceId, paint: { 'line-color': color, 'line-width': key === 'zones' ? 1.5 : 1.8, 'line-opacity': 0.9 } });
+
+        // Check checkbox state before adding layers
+        var checkbox = document.querySelector('input[data-layer="' + key + '"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+
+        map.addLayer({ id: fillId, type: 'fill', source: sourceId, paint: { 'fill-color': color, 'fill-opacity': fillOpacity }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
+        map.addLayer({ id: lineId, type: 'line', source: sourceId, paint: { 'line-color': color, 'line-width': key === 'zones' ? 1.5 : 1.8, 'line-opacity': 0.9 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
         map.on('click', fillId, function (e) {
           var f = e.features[0];
           var nom = nameFromProps(f.properties);
@@ -3018,16 +3106,23 @@
         if (map.getSource(sourceId)) { map.getSource(sourceId).setData(geojson); return; }
 
         map.addSource(sourceId, { type: 'geojson', data: geojson });
+
+        // Check checkbox state before adding cadastre layers
+        var checkbox = document.querySelector('input[data-layer="cadastre"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+
         map.addLayer({
           id: 'line-cadastre', type: 'line', source: sourceId,
           minzoom: 12,
-          paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 }
+          paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 },
+          layout: { 'visibility': isVisible ? 'visible' : 'none' }
         });
         map.addLayer({
           id: 'label-cadastre', type: 'symbol', source: sourceId,
           minzoom: 14,
           layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 },
-          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }
+          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 },
+          layout: { 'visibility': isVisible ? 'visible' : 'none' }
         });
 
         // ── SURBRILLANCE POLYGONE LOT ───────────────────────────────────────────
@@ -3150,8 +3245,13 @@
           .then(function (r) {
             if (!r.ok) throw new Error('absent');
             map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
-            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+
+            // Check checkbox state before adding cadastre layers
+            var checkbox = document.querySelector('input[data-layer="cadastre"]');
+            var isVisible = checkbox ? checkbox.checked : false;
+
+            map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
             map.on('click', 'line-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
@@ -3203,13 +3303,20 @@
       // ── TERRITOIRES AUTOCHTONES ──────────────────────────────────────────────
       function loadIndigenousLayer() {
         map.addSource('src-autochtone', { type: 'geojson', data: TERRITORIES_AUTOCHTONES });
+
+        // Check checkbox state before adding indigenous territories layers
+        var checkbox = document.querySelector('input[data-layer="autochtone"]');
+        var isVisible = checkbox ? checkbox.checked : false;
+
         map.addLayer({
           id: 'fill-autochtone', type: 'fill', source: 'src-autochtone',
-          paint: { 'fill-color': '#6b1a14', 'fill-opacity': 0.07 }
+          paint: { 'fill-color': '#6b1a14', 'fill-opacity': 0.07 },
+          layout: { 'visibility': isVisible ? 'visible' : 'none' }
         });
         map.addLayer({
           id: 'line-autochtone', type: 'line', source: 'src-autochtone',
-          paint: { 'line-color': '#6b1a14', 'line-width': 1.5, 'line-opacity': 0.55, 'line-dasharray': [5, 3] }
+          paint: { 'line-color': '#6b1a14', 'line-width': 1.5, 'line-opacity': 0.55, 'line-dasharray': [5, 3] },
+          layout: { 'visibility': isVisible ? 'visible' : 'none' }
         });
         map.on('click', 'fill-autochtone', function (e) {
           var f = e.features[0]; if (!f) return; var p = f.properties;
@@ -3424,7 +3531,12 @@
       var panel = $('panel'), panelHandle = $('panelHandle'), panelToggle = $('panelToggle'), panelMeta = $('panelMeta');
 
       function setPanelOpen(open) {
-        panel.classList.toggle('open', open);
+        var isDesktop = window.innerWidth >= 900;
+        if (isDesktop) {
+          panel.classList.toggle('collapsed', !open);
+        } else {
+          panel.classList.toggle('open', open);
+        }
         panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
         panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
         if (open) updateOfflinePanel();
@@ -3441,6 +3553,12 @@
       panelHandle.addEventListener('touchend', function () { dragStartY = null; });
       panelHandle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
       panelToggle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
+
+      // Desktop panel toggle
+      var panelToggleDesktop = $('panelToggleDesktop');
+      if (panelToggleDesktop) {
+        panelToggleDesktop.addEventListener('click', function () { setPanelOpen(true); });
+      }
 
       // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
       var inputs = document.querySelectorAll('input[data-layer]');
