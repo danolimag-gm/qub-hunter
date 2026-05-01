@@ -831,6 +831,113 @@
       background: var(--gold);
     }
 
+    /* ── MENU FAB ── */
+    .menu-fab {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      z-index: 20;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 1px solid var(--gold);
+      background: var(--forest-deep);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(29, 40, 24, 0.35);
+      transition: all 0.15s;
+    }
+
+    .menu-fab:active {
+      transform: scale(0.92);
+      background: var(--gold);
+    }
+
+    .menu-fab svg {
+      width: 24px;
+      height: 24px;
+      color: var(--paper);
+      transition: transform 0.3s ease;
+    }
+
+    .menu-fab.open svg {
+      transform: rotate(45deg);
+    }
+
+    /* ── ACTION MENU ── */
+    .action-menu {
+      position: absolute;
+      right: 80px;
+      bottom: 14px;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: repeat(2, 50px);
+      grid-template-rows: repeat(2, 50px);
+      gap: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .action-menu.open {
+      pointer-events: auto;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .menu-action-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 1px solid var(--bark-light);
+      background: var(--paper);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(29, 40, 24, 0.25);
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    .action-menu.open .menu-action-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .action-menu.open .menu-action-btn:nth-child(1) {
+      transition-delay: 0.05s;
+    }
+
+    .action-menu.open .menu-action-btn:nth-child(2) {
+      transition-delay: 0.1s;
+    }
+
+    .action-menu.open .menu-action-btn:nth-child(3) {
+      transition-delay: 0.15s;
+    }
+
+    .action-menu.open .menu-action-btn:nth-child(4) {
+      transition-delay: 0.2s;
+    }
+
+    .menu-action-btn:active {
+      transform: scale(0.92);
+      background: var(--gold);
+    }
+
+    .menu-action-btn svg {
+      width: 20px;
+      height: 20px;
+      color: var(--forest-deep);
+    }
+
+    .menu-action-btn span {
+      font-size: 20px;
+    }
+
     /* ── MAP WAYPOINT MARKERS ── */
     .map-wp-marker {
       width: 34px;
@@ -1233,15 +1340,12 @@
       top: calc(env(safe-area-inset-top) + 64px);
       z-index: 8;
       background: rgba(29, 40, 24, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      color: var(--paper);
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.08em;
       border: 1px solid rgba(212, 197, 160, 0.2);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--paper);
       pointer-events: none;
       line-height: 1.5;
     }
@@ -1254,7 +1358,7 @@
     /* ── LEGEND ── */
     .legend {
       position: absolute;
-      right: 14px;
+      left: 14px;
       bottom: 110px;
       z-index: 8;
       background: rgba(240, 232, 214, 0.96);
@@ -1488,7 +1592,7 @@
 
       .legend {
         bottom: 30px;
-        right: 14px;
+        left: 394px;
       }
 
       .loading-badge {
@@ -1508,7 +1612,8 @@
         background: var(--paper);
         border: 1px solid var(--line);
         border-radius: 8px;
-        display: grid;
+        color: var(--forest);
+        display: none;
         place-items: center;
         cursor: pointer;
         z-index: 100;
@@ -1651,25 +1756,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <!-- Partager position -->
-      <button class="icon-btn" id="shareBtn" aria-label="Partager la position">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="18" cy="5" r="3"></circle>
-          <circle cx="6" cy="12" r="3"></circle>
-          <circle cx="18" cy="19" r="3"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-      </button>
-      <!-- Recherche -->
-      <button class="icon-btn" id="searchToggle" aria-label="Rechercher">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-      </button>
+      <!-- Share and search buttons removed - now in menu -->
     </div>
   </header>
 
@@ -1712,14 +1799,47 @@
   </div>
 
   <!-- FABs -->
-  <button class="wp-fab" id="wpFab" aria-label="Ajouter un repère">📍</button>
-  <button class="geo-fab" id="geoFab" aria-label="Ma position">
+  <!-- GPS and waypoint FABs removed - now in menu -->
+
+  <!-- MENU FAB -->
+  <button class="menu-fab" id="menuFab" aria-label="Menu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
       stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3"></circle>
-      <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
   </button>
+
+  <!-- ACTION MENU -->
+  <div class="action-menu" id="actionMenu">
+    <button class="menu-action-btn" id="menuGps" aria-label="Ma position">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+      </svg>
+    </button>
+    <button class="menu-action-btn" id="menuWaypoint" aria-label="Ajouter un repère">
+      <span>📍</span>
+    </button>
+    <button class="menu-action-btn" id="menuShare" aria-label="Partager">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+    </button>
+    <button class="menu-action-btn" id="menuSearch" aria-label="Rechercher">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </button>
+  </div>
 
   <!-- DESKTOP PANEL TOGGLE -->
   <button class="panel-toggle-desktop" id="panelToggleDesktop" aria-label="Ouvrir le panneau">
@@ -2022,6 +2142,21 @@
             <div class="layer-desc">Cercle autour de votre GPS</div>
           </div>
           <label class="toggle"><input type="checkbox" id="toggle300m"><span class="toggle-slider"></span></label>
+        </div>
+
+        <!-- Outil cercle 300m personnalisé -->
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(42,92,138,0.2);border:2px dashed #2a5c8a"></div>
+          <div class="layer-info">
+            <div class="layer-name">Ajouter cercle 300 m</div>
+            <div class="layer-desc">Cliquez sur la carte pour placer</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="toggleCircleTool"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="padding:4px 0 0">
+          <button id="clearCirclesBtn"
+            style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 8px;background:var(--bark-light);color:#fff;border:none;border-radius:4px;cursor:pointer">Effacer
+            tous les cercles</button>
         </div>
         <div class="zone300-note">
           ⚖ Loi provinciale : armes à feu interdites à moins de <strong>300 m</strong> de toute résidence ou bâtiment
@@ -2740,7 +2875,7 @@
           window.prompt('Copiez ce lien :', url);
         }
       }
-      $('shareBtn').addEventListener('click', sharePosition);
+      // Share button removed - now in menu, functionality called directly
 
       // ── EXPORT GPX ───────────────────────────────────────────────────────────
       function exportGPX() {
@@ -2906,18 +3041,19 @@
       // ── TUILES ──────────────────────────────────────────────────────────────
       var TILE_SOURCES = [
         { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
-        { name: 'OpenTopoMap (relief)', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'], attrib: '© OpenTopoMap (CC-BY-SA) © OSM' },
+        { name: 'OpenTopoMap (relief)', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'], attrib: '© OpenTopoMap (CC-BY-SA) © OSM', maxZoom: 17 },
         { name: 'OSM', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], attrib: '© OpenStreetMap' },
         { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' }
       ];
-      var currentSourceIdx = 0;
+      var currentSourceIdx = 1;
 
       function makeStyle(src) {
         var tileSize = src.tileSize || 256;
-        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: 19 } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
+        var maxzoom = src.maxZoom || 19;
+        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: maxzoom } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
       }
       function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
-      setSourceLabel(TILE_SOURCES[0].name);
+      setSourceLabel(TILE_SOURCES[currentSourceIdx].name);
 
       if (typeof maplibregl === 'undefined') { showError('MapLibre GL non chargé.'); return; }
 
@@ -3543,6 +3679,10 @@
       var circle300mActive = false;
       var gpsLatLng = null;
 
+      // Custom 300m circles (placed by user)
+      var custom300mCircles = [];
+      var circleToolActive = false;
+
       function makeCircleGeoJSON(lat, lng, radiusM) {
         var coords = [], steps = 64;
         for (var i = 0; i < steps; i++) {
@@ -3595,6 +3735,88 @@
           ['fill-zone300m', 'line-zone300m'].forEach(function (id) {
             if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
           });
+        }
+      }
+
+      // ── CUSTOM 300M CIRCLES (placed by user) ─────────────────────────────────
+      function addCustom300mCircle(lat, lng) {
+        var id = 'custom-circle-' + Date.now();
+        var circle = { id: id, lat: lat, lng: lng };
+        custom300mCircles.push(circle);
+        renderCustom300mCircles();
+        showToast('Cercle 300 m ajouté');
+      }
+
+      function removeCustom300mCircle(id) {
+        custom300mCircles = custom300mCircles.filter(function (c) { return c.id !== id; });
+        renderCustom300mCircles();
+      }
+
+      function clearCustom300mCircles() {
+        custom300mCircles = [];
+        renderCustom300mCircles();
+        showToast('Cercles 300 m effacés');
+      }
+
+      function renderCustom300mCircles() {
+        var features = custom300mCircles.map(function (c) {
+          var geojson = makeCircleGeoJSON(c.lat, c.lng, 300);
+          return {
+            type: 'Feature',
+            geometry: geojson.features[0].geometry,
+            properties: { id: c.id }
+          };
+        });
+
+        var featureCollection = { type: 'FeatureCollection', features: features };
+
+        if (map.getSource('src-custom300m')) {
+          map.getSource('src-custom300m').setData(featureCollection);
+          ['fill-custom300m', 'line-custom300m'].forEach(function (id) {
+            if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
+          });
+        } else {
+          map.addSource('src-custom300m', { type: 'geojson', data: featureCollection });
+          map.addLayer({
+            id: 'fill-custom300m', type: 'fill', source: 'src-custom300m',
+            paint: { 'fill-color': '#2a5c8a', 'fill-opacity': 0.15 }
+          });
+          map.addLayer({
+            id: 'line-custom300m', type: 'line', source: 'src-custom300m',
+            paint: { 'line-color': '#2a5c8a', 'line-width': 2, 'line-opacity': 0.8, 'line-dasharray': [3, 3] }
+          });
+        }
+
+        // Add center markers
+        var centerFeatures = custom300mCircles.map(function (c) {
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [c.lng, c.lat] },
+            properties: { id: c.id }
+          };
+        });
+
+        var centerCollection = { type: 'FeatureCollection', features: centerFeatures };
+
+        if (map.getSource('src-custom300m-centers')) {
+          map.getSource('src-custom300m-centers').setData(centerCollection);
+        } else {
+          map.addSource('src-custom300m-centers', { type: 'geojson', data: centerCollection });
+          map.addLayer({
+            id: 'circle-custom300m-centers', type: 'circle', source: 'src-custom300m-centers',
+            paint: { 'circle-radius': 6, 'circle-color': '#2a5c8a', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' }
+          });
+        }
+      }
+
+      function toggleCircleTool(enabled) {
+        circleToolActive = enabled;
+        if (enabled) {
+          map.getCanvas().style.cursor = 'crosshair';
+          showToast('Mode cercle 300 m: cliquez sur la carte');
+        } else {
+          map.getCanvas().style.cursor = '';
+          showToast('Mode cercle 300 m désactivé');
         }
       }
 
@@ -3689,16 +3911,72 @@
         map.once('idle', function () {
           var ctrl = document.querySelector('.maplibregl-ctrl-geolocate'); if (ctrl) ctrl.style.display = 'none';
         });
-        $('geoFab').addEventListener('click', function () {
-          var ctrl = document.querySelector('.maplibregl-ctrl-geolocate');
-          if (ctrl) ctrl.click(); else showError('Géolocalisation indisponible (HTTPS requis)');
-        });
+        // geoFab removed - now in menu, functionality called directly
       } catch (e) { }
 
       // ── WAYPOINT FAB ─────────────────────────────────────────────────────────
-      $('wpFab').addEventListener('click', function () {
+      // Waypoint FAB removed - now in menu, functionality called directly
+
+      // ── MENU FAB ───────────────────────────────────────────────────────────────
+      var menuOpen = false;
+      var menuFab = $('menuFab');
+      var actionMenu = $('actionMenu');
+
+      function toggleMenu() {
+        menuOpen = !menuOpen;
+        if (menuOpen) {
+          menuFab.classList.add('open');
+          actionMenu.classList.add('open');
+        } else {
+          menuFab.classList.remove('open');
+          actionMenu.classList.remove('open');
+        }
+      }
+
+      function closeMenu() {
+        if (menuOpen) {
+          menuOpen = false;
+          menuFab.classList.remove('open');
+          actionMenu.classList.remove('open');
+        }
+      }
+
+      if (menuFab) {
+        menuFab.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggleMenu();
+        });
+      }
+
+      // Close menu when clicking elsewhere
+      document.addEventListener('click', function (e) {
+        if (actionMenu && menuFab && !actionMenu.contains(e.target) && e.target !== menuFab) {
+          closeMenu();
+        }
+      });
+
+      // Wire up menu buttons to existing functionality
+      $('menuGps').addEventListener('click', function () {
+        closeMenu();
+        var ctrl = document.querySelector('.maplibregl-ctrl-geolocate');
+        if (ctrl) ctrl.click(); else showError('Géolocalisation indisponible (HTTPS requis)');
+      });
+
+      $('menuWaypoint').addEventListener('click', function () {
+        closeMenu();
         var c = map.getCenter();
         openMarkerModal(c.lng, c.lat);
+      });
+
+      $('menuSearch').addEventListener('click', function () {
+        closeMenu();
+        $('searchOverlay').classList.add('open');
+        setTimeout(function () { $('searchInput').focus(); }, 300);
+      });
+
+      $('menuShare').addEventListener('click', function () {
+        closeMenu();
+        sharePosition();
       });
 
       // ── APPUI LONG SUR CARTE (mobile) ────────────────────────────────────────
@@ -3808,12 +4086,31 @@
       var t300 = $('toggle300m');
       if (t300) t300.addEventListener('change', function () { toggle300m(this.checked); });
 
+      // ── TOGGLE CIRCLE TOOL (custom 300m circles) ─────────────────────────────────
+      var circleToolToggle = $('toggleCircleTool');
+      if (circleToolToggle) circleToolToggle.addEventListener('change', function () { toggleCircleTool(this.checked); });
+
+      // ── MAP CLICK HANDLER (for placing custom circles) ─────────────────────────
+      map.on('click', function (e) {
+        if (circleToolActive) {
+          addCustom300mCircle(e.lngLat.lat, e.lngLat.lng);
+          // Keep tool active for multiple circles
+        }
+      });
+
+      // ── CLEAR CUSTOM CIRCLES BUTTON ─────────────────────────────────────────────
+      var clearCirclesBtn = $('clearCirclesBtn');
+      if (clearCirclesBtn) clearCirclesBtn.addEventListener('click', function () { clearCustom300mCircles(); });
+
       // ── RECHERCHE ─────────────────────────────────────────────────────────────
       var searchOverlay = $('searchOverlay'), searchInput = $('searchInput'), searchResults = $('searchResults');
       var searchDebounce = null, activeMarker = null;
 
-      $('searchToggle').addEventListener('click', function () { searchOverlay.classList.add('open'); setTimeout(function () { searchInput.focus(); }, 300); });
-      $('searchClose').addEventListener('click', function () { searchOverlay.classList.remove('open'); searchInput.value = ''; searchResults.innerHTML = ''; });
+      // searchToggle removed - now in menu, functionality called directly
+      var searchCloseBtn = $('searchClose');
+      if (searchCloseBtn) {
+        searchCloseBtn.addEventListener('click', function () { searchOverlay.classList.remove('open'); searchInput.value = ''; searchResults.innerHTML = ''; });
+      }
 
       function showSearchResults(items) {
         if (!items || !items.length) { searchResults.innerHTML = '<div class="search-empty">Aucun résultat</div>'; return; }
@@ -3911,6 +4208,26 @@
             window.open(url, '_blank', 'noopener,noreferrer');
           });
         });
+      }
+
+      function searchMunicipalities(query) {
+        // Search Quebec municipalities using Nominatim API
+        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', Québec') + '&country=ca&limit=5&featuretype=settlement')
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (data) {
+            var items = [];
+            if (Array.isArray(data)) data.forEach(function (item) {
+              if (item.lat && item.lon) {
+                items.push({
+                  name: item.display_name.split(',')[0],
+                  lat: parseFloat(item.lat),
+                  lng: parseFloat(item.lon),
+                  type: 'Municipalité'
+                });
+              }
+            });
+            return items;
+          });
       }
 
       function iChercheSearch(query) {
@@ -4142,8 +4459,37 @@
 
         // 3. Recherche générale (nom de lieu, municipalité, MRC, adresse…)
         searchResults.innerHTML = '<div class="search-empty">Recherche…</div>';
-        iChercheSearch(query).then(showSearchResults).catch(function () {
-          var local = searchLocalLayers(query); showSearchResults(local.length ? local : null);
+
+        // Try multiple search sources in parallel
+        Promise.all([
+          iChercheSearch(query),
+          searchMunicipalities(query)
+        ]).then(function (results) {
+          var allResults = [];
+          results.forEach(function (r) {
+            if (r && r.length) allResults = allResults.concat(r);
+          });
+
+          // Remove duplicates based on name
+          var seen = {};
+          var uniqueResults = [];
+          allResults.forEach(function (item) {
+            var key = item.name.toLowerCase();
+            if (!seen[key]) {
+              seen[key] = true;
+              uniqueResults.push(item);
+            }
+          });
+
+          if (uniqueResults.length > 0) {
+            showSearchResults(uniqueResults.slice(0, 10));
+          } else {
+            var local = searchLocalLayers(query);
+            showSearchResults(local.length ? local : null);
+          }
+        }).catch(function () {
+          var local = searchLocalLayers(query);
+          showSearchResults(local.length ? local : null);
         });
       }
 
