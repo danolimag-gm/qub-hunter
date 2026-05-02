@@ -868,23 +868,23 @@
     /* ── ACTION MENU ── */
     .action-menu {
       position: absolute;
-      right: 80px;
-      bottom: 14px;
+      right: 14px;
+      bottom: 76px;
       z-index: 20;
       display: grid;
-      grid-template-columns: repeat(2, 50px);
-      grid-template-rows: repeat(2, 50px);
+      grid-template-columns: 50px;
+      grid-template-rows: repeat(4, 50px);
       gap: 12px;
       pointer-events: none;
       opacity: 0;
-      transform: translateX(20px);
+      transform: scale(0.8);
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     .action-menu.open {
       pointer-events: auto;
       opacity: 1;
-      transform: translateX(0);
+      transform: scale(1);
     }
 
     .menu-action-btn {
@@ -898,13 +898,13 @@
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(29, 40, 24, 0.25);
       transition: all 0.3s ease;
-      opacity: 0;
-      transform: scale(0.8);
-    }
-
-    .action-menu.open .menu-action-btn {
       opacity: 1;
       transform: scale(1);
+    }
+
+    .action-menu:not(.open) .menu-action-btn {
+      opacity: 0;
+      transform: scale(0.5);
     }
 
     .action-menu.open .menu-action-btn:nth-child(1) {
@@ -3070,7 +3070,7 @@
       var map;
       try {
         map = new maplibregl.Map({
-          container: 'map', style: makeStyle(TILE_SOURCES[0]),
+          container: 'map', style: makeStyle(TILE_SOURCES[currentSourceIdx]),
           center: [-71.5, 50.0], zoom: 5, minZoom: 3, maxZoom: 18,
           attributionControl: { compact: true }, useWebWorkers: false
         });
