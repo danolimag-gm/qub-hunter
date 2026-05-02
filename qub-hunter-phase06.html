@@ -61,6 +61,49 @@
       background: var(--paper-warm);
     }
 
+    /* ── LANDSCAPE WARNING ── */
+    @media screen and (orientation: landscape) and (max-width: 900px) {
+      .landscape-warning {
+        display: flex !important;
+      }
+    }
+
+    .landscape-warning {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--forest-deep);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--paper);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .landscape-warning svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 20px;
+      color: var(--gold);
+    }
+
+    .landscape-warning h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      font-family: 'Inria Sans', sans-serif;
+    }
+
+    .landscape-warning p {
+      font-size: 16px;
+      color: var(--paper-aged);
+      font-family: 'Inria Sans', sans-serif;
+    }
+
     .icon-btn {
       width: 42px;
       height: 42px;
@@ -1631,6 +1674,16 @@
 </head>
 
 <body>
+  <!-- LANDSCAPE WARNING -->
+  <div class="landscape-warning">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+      <line x1="12" y1="18" x2="12" y2="18"></line>
+    </svg>
+    <h2>Tournez votre appareil</h2>
+    <p>Cette application est optimisée pour le mode portrait</p>
+  </div>
 
   <div id="map"></div>
 
