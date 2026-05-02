@@ -1,4 +1,4 @@
-/* Qub Hunter — Service Worker — Phase 03 */
+/* Qub Hunter — Service Worker — Phase 03 — V2 */
 'use strict';
 
 const STATIC = 'qub-hunter-static-v1';
