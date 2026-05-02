@@ -2289,9 +2289,23 @@
         }
       }
 
-      $('clearCacheBtn').addEventListener('click', function () {
-        if (!('caches' in window)) return;
-        caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).then(updateOfflinePanel);
+      $('clearCacheBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!('caches' in window)) {
+          alert('Cache API non disponible');
+          return;
+        }
+        caches.keys().then(function (keys) {
+          console.log('Caches à supprimer:', keys);
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        }).then(function () {
+          console.log('Cache vidé avec succès');
+          updateOfflinePanel();
+          alert('Cache vidé avec succès');
+        }).catch(function (err) {
+          console.error('Erreur lors de la suppression du cache:', err);
+          alert('Erreur lors de la suppression du cache');
+        });
       });
 
       // ── ERREURS / LOADING ───────────────────────────────────────────────────
