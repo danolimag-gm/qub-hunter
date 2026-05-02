@@ -4212,7 +4212,7 @@
 
       function searchMunicipalities(query) {
         // Search Quebec municipalities using Nominatim API
-        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', Québec') + '&country=ca&limit=5&featuretype=settlement')
+        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', Québec, Canada') + '&limit=5')
           .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
           .then(function (data) {
             var items = [];
@@ -4460,36 +4460,37 @@
         // 3. Recherche générale (nom de lieu, municipalité, MRC, adresse…)
         searchResults.innerHTML = '<div class="search-empty">Recherche…</div>';
 
-        // Try multiple search sources in parallel
-        Promise.all([
-          iChercheSearch(query),
-          searchMunicipalities(query)
-        ]).then(function (results) {
-          var allResults = [];
-          results.forEach(function (r) {
-            if (r && r.length) allResults = allResults.concat(r);
-          });
-
-          // Remove duplicates based on name
-          var seen = {};
-          var uniqueResults = [];
-          allResults.forEach(function (item) {
-            var key = item.name.toLowerCase();
-            if (!seen[key]) {
-              seen[key] = true;
-              uniqueResults.push(item);
-            }
-          });
-
-          if (uniqueResults.length > 0) {
-            showSearchResults(uniqueResults.slice(0, 10));
+        // Try municipality search first, then fallback to iCherche
+        searchMunicipalities(query).then(function (muniResults) {
+          if (muniResults && muniResults.length > 0) {
+            showSearchResults(muniResults.slice(0, 10));
           } else {
-            var local = searchLocalLayers(query);
-            showSearchResults(local.length ? local : null);
+            // Fallback to iCherche
+            iChercheSearch(query).then(function (iChercheResults) {
+              if (iChercheResults && iChercheResults.length > 0) {
+                showSearchResults(iChercheResults.slice(0, 10));
+              } else {
+                var local = searchLocalLayers(query);
+                showSearchResults(local.length ? local : null);
+              }
+            }).catch(function () {
+              var local = searchLocalLayers(query);
+              showSearchResults(local.length ? local : null);
+            });
           }
         }).catch(function () {
-          var local = searchLocalLayers(query);
-          showSearchResults(local.length ? local : null);
+          // If municipality search fails, try iCherche
+          iChercheSearch(query).then(function (iChercheResults) {
+            if (iChercheResults && iChercheResults.length > 0) {
+              showSearchResults(iChercheResults.slice(0, 10));
+            } else {
+              var local = searchLocalLayers(query);
+              showSearchResults(local.length ? local : null);
+            }
+          }).catch(function () {
+            var local = searchLocalLayers(query);
+            showSearchResults(local.length ? local : null);
+          });
         });
       }
 
