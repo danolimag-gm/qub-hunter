@@ -61,6 +61,36 @@
       background: var(--paper-warm);
     }
 
+    /* ── LOGO ── */
+    .logo-link {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 16px);
+      left: 16px;
+      z-index: 25;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      border: none;
+      text-decoration: none;
+      display: block;
+    }
+
+    .logo-link:hover {
+      opacity: 0.85;
+    }
+
+    .logo-img {
+      width: 144px;
+      height: auto;
+      display: block;
+      border: none;
+    }
+
+    @media (min-width: 900px) {
+      .logo-img {
+        width: 192px;
+      }
+    }
+
     /* ── LANDSCAPE WARNING ── */
     @media screen and (orientation: landscape) and (max-width: 900px) {
       .landscape-warning {
@@ -1674,6 +1704,11 @@
 </head>
 
 <body>
+  <!-- LOGO -->
+  <a href="." class="logo-link" id="logoLink">
+    <img class="logo-img" src="qub-hunter-traced.svg" alt="Qub Hunter Logo" />
+  </a>
+
   <!-- LANDSCAPE WARNING -->
   <div class="landscape-warning">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
