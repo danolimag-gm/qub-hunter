@@ -3050,6 +3050,7 @@
       var TILE_SOURCES = [
         { name: 'CARTO Voyager', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], attrib: '© CARTO © OSM' },
         { name: 'OpenTopoMap (relief)', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'], attrib: '© OpenTopoMap (CC-BY-SA) © OSM', maxZoom: 17 },
+        { name: 'Satellite', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], attrib: '© Esri, Maxar, Earthstar Geographics', maxZoom: 19, tileSize: 256, satellite: true },
         { name: 'OSM', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], attrib: '© OpenStreetMap' },
         { name: 'Stadia Bright', tiles: ['https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'], attrib: '© Stadia Maps © OSM' }
       ];
@@ -3058,7 +3059,10 @@
       function makeStyle(src) {
         var tileSize = src.tileSize || 256;
         var maxzoom = src.maxZoom || 19;
-        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: maxzoom } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 } }] };
+        var rasterPaint = src.satellite
+          ? { 'raster-opacity': 1 }
+          : { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 };
+        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: maxzoom } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: rasterPaint }] };
       }
       function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
       setSourceLabel(TILE_SOURCES[currentSourceIdx].name);
