@@ -1599,53 +1599,35 @@
 
     /* ── DESKTOP ── */
     @media (min-width: 900px) {
+      /* Panneau : bottom-sheet gauche, 360px, 70vh — même mécanique que mobile */
       .panel {
-        width: 380px;
         right: auto;
-        border-radius: 0 8px 8px 0;
+        width: 360px;
+        max-height: 70vh;
+        top: auto;
+        border-radius: 0 14px 0 0;
         border-right: 1px solid var(--line);
         border-top: 1px solid var(--line);
-        transform: translateX(0);
-        bottom: 0;
-        top: 0;
-        padding-top: calc(env(safe-area-inset-top) + 80px);
+        padding-top: 0;
       }
 
-      .panel.collapsed {
-        transform: translateX(-100%);
-      }
-
-      .panel-handle {
-        display: none;
-      }
+      .panel-handle { display: block; }
 
       .panel-content {
-        max-height: calc(100vh - env(safe-area-inset-top) - 80px);
+        max-height: calc(70vh - 64px);
         overflow-y: auto;
         flex: 1;
       }
 
-      /* Transitions fluides sur tous les éléments flottants */
-      .geo-fab, .wp-fab, .legend, .loading-badge, .compass-readout {
-        transition: left 0.3s ease;
-      }
+      /* Éléments flottants : toujours à droite de la zone panel (360px) */
+      .geo-fab        { left: 374px; bottom: 30px; }
+      .wp-fab         { left: 374px; bottom: 90px; }
+      .legend         { left: 374px; bottom: 30px; }
+      .loading-badge  { left: 374px; }
+      .compass-readout{ left: 374px; bottom: 80px; }
+      .search-overlay { left: 360px; }
 
-      /* Positions par défaut desktop (panel fermé) */
-      .geo-fab   { left: 14px; bottom: 30px; }
-      .wp-fab    { left: 14px; bottom: 90px; }
-      .legend    { left: 14px; bottom: 30px; }
-      .loading-badge { left: 0px; }
-      .compass-readout { left: 14px; bottom: 80px; }
-      .search-overlay { left: 0; }
-
-      /* Panel ouvert → décaler à droite du sidebar */
-      body.sidebar-open .geo-fab        { left: 394px; }
-      body.sidebar-open .wp-fab         { left: 394px; }
-      body.sidebar-open .legend         { left: 394px; }
-      body.sidebar-open .loading-badge  { left: 394px; }
-      body.sidebar-open .compass-readout{ left: 394px; }
-      body.sidebar-open .search-overlay { left: 380px; }
-
+      /* Bouton toggle desktop — toujours visible */
       .panel-toggle-desktop {
         position: absolute;
         left: 14px;
@@ -1656,25 +1638,15 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         color: var(--forest);
-        display: none;
+        display: grid;
         place-items: center;
         cursor: pointer;
         z-index: 100;
         box-shadow: 0 2px 8px rgba(29, 40, 24, 0.15);
-        transition: all 0.2s;
+        transition: background 0.2s;
       }
 
-      .panel-toggle-desktop:hover {
-        background: var(--paper-aged);
-      }
-
-      .panel.collapsed~.panel-toggle-desktop {
-        display: grid;
-      }
-
-      .panel:not(.collapsed)~.panel-toggle-desktop {
-        display: none;
-      }
+      .panel-toggle-desktop:hover { background: var(--paper-aged); }
     }
 
     /* ── ZONE 300M ── */
@@ -4251,24 +4223,16 @@
       var panel = $('panel'), panelHandle = $('panelHandle'), panelToggle = $('panelToggle'), panelMeta = $('panelMeta');
 
       function setPanelOpen(open) {
-        var isDesktop = window.innerWidth >= 900;
-        if (isDesktop) {
-          panel.classList.toggle('collapsed', !open);
-          document.body.classList.toggle('sidebar-open', open);
-        } else {
-          panel.classList.toggle('open', open);
-        }
+        panel.classList.toggle('open', open);
         panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
         panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
+        var isDesktop = window.innerWidth >= 900;
         var compassReadout = $('compass');
         if (compassReadout) {
           compassReadout.style.display = open && !isDesktop ? 'none' : '';
         }
         if (open) updateOfflinePanel();
       }
-
-      // Ouvrir le sidebar par défaut sur desktop
-      if (window.innerWidth >= 900) { setPanelOpen(true); }
 
       var dragStartY = null;
       panelHandle.addEventListener('touchstart', function (e) { dragStartY = e.touches[0].clientY; }, { passive: true });
@@ -4285,7 +4249,9 @@
       // Desktop panel toggle
       var panelToggleDesktop = $('panelToggleDesktop');
       if (panelToggleDesktop) {
-        panelToggleDesktop.addEventListener('click', function () { setPanelOpen(true); });
+        panelToggleDesktop.addEventListener('click', function () {
+          setPanelOpen(!panel.classList.contains('open'));
+        });
       }
 
       // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
