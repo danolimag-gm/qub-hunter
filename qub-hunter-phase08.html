@@ -1623,11 +1623,11 @@
 
     /* ── DESKTOP ── */
     @media (min-width: 900px) {
-      /* Panneau : bottom-sheet gauche, 80vw, 70vh — même mécanique que mobile */
+      /* Panneau : bottom-sheet gauche, 360px, 80vh — même mécanique que mobile */
       .panel {
         right: auto;
-        width: 80vw;
-        max-height: 70vh;
+        width: 360px;
+        max-height: 80vh;
         top: auto;
         border-radius: 0 14px 0 0;
         border-right: 1px solid var(--line);
@@ -1638,18 +1638,18 @@
       .panel-handle { display: block; }
 
       .panel-content {
-        max-height: calc(70vh - 64px);
+        max-height: calc(80vh - 64px);
         overflow-y: auto;
         flex: 1;
       }
 
-      /* Éléments flottants : côté droit (panel prend 80% de la largeur) */
-      .geo-fab        { left: auto; right: 14px; bottom: 30px; }
-      .wp-fab         { left: auto; right: 14px; bottom: 90px; }
-      .legend         { left: auto; right: 14px; bottom: 30px; }
-      .loading-badge  { left: auto; right: 14px; }
+      /* Éléments flottants : à droite du panel (360px) */
+      .geo-fab        { left: 374px; bottom: 30px; }
+      .wp-fab         { left: 374px; bottom: 90px; }
+      .legend         { left: 374px; bottom: 30px; }
+      .loading-badge  { left: 374px; }
       .compass-readout{ display: none; }
-      .search-overlay { left: 0; right: 0; }
+      .search-overlay { left: 360px; }
     }
 
     /* ── ZONE 300M ── */
