@@ -3904,6 +3904,25 @@
         }
       }
 
+      // ── CERCLE 300M PREVIEW (suit le centre de la carte) ────────────────────
+      function renderPreview300m() {
+        var c = map.getCenter();
+        var geojson = makeCircleGeoJSON(c.lat, c.lng, 300);
+        if (map.getSource('src-preview300m')) {
+          map.getSource('src-preview300m').setData(geojson);
+        } else {
+          map.addSource('src-preview300m', { type: 'geojson', data: geojson });
+          map.addLayer({
+            id: 'fill-preview300m', type: 'fill', source: 'src-preview300m',
+            paint: { 'fill-color': '#e07820', 'fill-opacity': 0.07 }
+          });
+          map.addLayer({
+            id: 'line-preview300m', type: 'line', source: 'src-preview300m',
+            paint: { 'line-color': '#e07820', 'line-width': 1.5, 'line-opacity': 0.45, 'line-dasharray': [4, 3] }
+          });
+        }
+      }
+
       // ── CUSTOM 300M CIRCLES (placed by user) ─────────────────────────────────
       function addCustom300mCircle(lat, lng) {
         openMarkerModal(lng, lat, 'cercle300m');
@@ -4044,6 +4063,7 @@
         loadWaypointsFromStorage();
         for (var i = 0; i < waypoints.length; i++) { addWaypointToMap(waypoints[i]); }
         renderCustom300mCircles();
+        renderPreview300m();
         renderWaypointList();
 
         // Charger le carnet de chasse
@@ -4051,7 +4071,8 @@
         renderHuntLogList();
       });
 
-      map.on('styledata', function () { if (!map.getSource('src-zec')) { loadAllLayers(); renderCustom300mCircles(); } });
+      map.on('styledata', function () { if (!map.getSource('src-zec')) { loadAllLayers(); renderCustom300mCircles(); renderPreview300m(); } });
+      map.on('move', renderPreview300m);
 
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
       map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
