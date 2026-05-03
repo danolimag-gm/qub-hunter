@@ -2043,10 +2043,26 @@
           </div>
           <label class="toggle"><input type="checkbox" data-layer="cadastre"><span class="toggle-slider"></span></label>
         </div>
-        <div
-          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
-          PMTiles local requis.<br>
-          <code style="color:var(--moss)">python pipeline/generate_pmtiles.py --region mauricie</code>
+        <div style="padding:6px 0 0">
+          <select id="region-select" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--paper-warm);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 6px;cursor:pointer">
+            <option value="01">01 — Bas-Saint-Laurent</option>
+            <option value="02">02 — Saguenay–Lac-Saint-Jean</option>
+            <option value="03">03 — Capitale-Nationale</option>
+            <option value="04" selected>04 — Mauricie</option>
+            <option value="05">05 — Estrie</option>
+            <option value="06">06 — Montréal</option>
+            <option value="07">07 — Outaouais</option>
+            <option value="08">08 — Abitibi-Témiscamingue</option>
+            <option value="09">09 — Côte-Nord</option>
+            <option value="10">10 — Nord-du-Québec</option>
+            <option value="11">11 — Gaspésie–Îles-de-la-Madeleine</option>
+            <option value="12">12 — Chaudière-Appalaches</option>
+            <option value="13">13 — Laval</option>
+            <option value="14">14 — Lanaudière</option>
+            <option value="15">15 — Laurentides</option>
+            <option value="16">16 — Montérégie</option>
+            <option value="17">17 — Centre-du-Québec</option>
+          </select>
         </div>
       </div>
 
@@ -3050,7 +3066,9 @@
       if (typeof maplibregl === 'undefined') { showError('MapLibre GL non chargé.'); return; }
 
       // ── PMTILES ─────────────────────────────────────────────────────────────
-      var CADASTRE_PMTILES = './pmtiles/cadastre_mauricie.pmtiles';
+      var R2_BASE = 'https://pub-58d03817f7d946a1a57bd4fe9c9c25af.r2.dev';
+      var currentRegion = localStorage.getItem('cadastre-region') || '04';
+      var CADASTRE_PMTILES = R2_BASE + '/cadastre/cadastre_' + currentRegion + '.pmtiles';
       var pmtilesAvailable = false;
       if (typeof pmtiles !== 'undefined') {
         var protocol = new pmtiles.Protocol();
@@ -3423,6 +3441,19 @@
           }
           return false;
         };
+      }
+
+      function reloadCadastre(regionCode) {
+        currentRegion = regionCode;
+        CADASTRE_PMTILES = R2_BASE + '/cadastre/cadastre_' + regionCode + '.pmtiles';
+        localStorage.setItem('cadastre-region', regionCode);
+        ['label-cadastre', 'line-cadastre'].forEach(function(id) {
+          if (map.getLayer(id)) map.removeLayer(id);
+        });
+        if (map.getSource('src-cadastre')) map.removeSource('src-cadastre');
+        var descEl = $('desc-cadastre');
+        if (descEl) descEl.textContent = 'chargement…';
+        loadCadastrePMTiles(descEl);
       }
 
       function loadCadastrePMTiles(descEl) {
@@ -3823,6 +3854,15 @@
         // loadMooseHabitatLayer(); // WMS non disponible - accès restreint sur Données Québec
         $('legend').classList.add('visible');
         updateOfflinePanel();
+      }
+
+      // Initialiser le sélecteur de région avec la valeur sauvegardée
+      var regionSelect = document.getElementById('region-select');
+      if (regionSelect) {
+        regionSelect.value = currentRegion;
+        regionSelect.addEventListener('change', function () {
+          reloadCadastre(this.value);
+        });
       }
 
       map.on('load', function () {
