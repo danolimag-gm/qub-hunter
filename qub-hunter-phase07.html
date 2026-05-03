@@ -3292,21 +3292,7 @@
 
       function loadCadastre() {
         var descEl = $('desc-cadastre');
-
-        // ── Priorité 1 : Cadastre local des zones de chasse ──
-        fetch('./cadastre_zones.geojson')
-          .then(function (r) { if (!r.ok) throw new Error('absent'); return r.json(); })
-          .then(function (data) {
-            cadastreLocalData = data;
-            addCadastreLayer(data, true);
-            var lotCount = data.features ? data.features.length : 0;
-            if (descEl) descEl.textContent = lotCount + ' lots des zones 02-29 · local ';
-            updateOfflinePanel();
-          })
-          .catch(function () {
-            // ── Priorité 2 : PMTiles fallback ──
-            loadCadastrePMTiles(descEl);
-          });
+        loadCadastrePMTiles(descEl);
       }
 
       function addCadastreLayer(geojson, isLocal) {
