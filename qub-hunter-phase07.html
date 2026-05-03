@@ -2153,14 +2153,13 @@
         <div class="section-label">Végétation</div>
 
         <!-- Types forestiers -->
-        <div class="layer-row" style="opacity:0.5">
-          <div class="layer-swatch" style="background:var(--forest);border:1px solid var(--forest-dark)"></div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:linear-gradient(135deg,#2D6A4F 33%,#C0392B 33% 66%,#F9A825 66%);border:1px solid var(--forest-dark)"></div>
           <div class="layer-info">
             <div class="layer-name">Types forestiers</div>
-            <div class="layer-desc" id="desc-forest-types">indisponible (WMS 503)</div>
+            <div class="layer-desc" id="desc-forest-types">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="forest-types" disabled><span
-              class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="forest-types"><span class="toggle-slider"></span></label>
         </div>
 
         <!-- Occupation du sol -->
@@ -3214,6 +3213,7 @@
       var R2_BASE = 'https://pub-58d03817f7d946a1a57bd4fe9c9c25af.r2.dev';
       var currentRegion = localStorage.getItem('cadastre-region') || '04';
       var CADASTRE_PMTILES = R2_BASE + '/cadastre/cadastre_' + currentRegion + '.pmtiles';
+      var FOREST_TYPES_PMTILES = R2_BASE + '/types/types_forestiers.pmtiles';
       var pmtilesAvailable = false;
       if (typeof pmtiles !== 'undefined') {
         var protocol = new pmtiles.Protocol();
@@ -3684,39 +3684,78 @@
       }
 
       // ── VÉGÉTATION ─────────────────────────────────────────────────────────────
+      var TYPE_COUV_LABELS = { 'R': 'Résineux', 'F': 'Feuillu', 'M': 'Mélangé' };
+
       function loadForestTypesLayer() {
+        if (!pmtilesAvailable) return;
         var checkbox = document.querySelector('input[data-layer="forest-types"]');
         var isVisible = checkbox ? checkbox.checked : false;
         var descEl = $('desc-forest-types');
 
-        // WMS service from MFFP (Ministère des Ressources naturelles et des Forêts)
-        // Service: Données écoforestières MRNF-DIF (WMS)
-        // URL: https://geoegl.msp.gouv.qc.ca/ws/mffpecofor.fcgi
-        // Layer: produits_ecoforestiers (Peuplements écoforestiers)
-        var wmsUrl = 'https://geoegl.msp.gouv.qc.ca/ws/mffpecofor.fcgi';
-        var wmsLayer = 'produits_ecoforestiers';
+        fetch(FOREST_TYPES_PMTILES, { method: 'HEAD' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('absent');
+            map.addSource('src-forest-types', {
+              type: 'vector',
+              url: 'pmtiles://' + FOREST_TYPES_PMTILES,
+              attribution: ' MRNF — Carte écoforestière'
+            });
 
-        map.addSource('src-forest-types', {
-          type: 'raster',
-          tiles: [
-            wmsUrl + '?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=' + wmsLayer +
-            '&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png'
-          ],
-          tileSize: 256,
-          attribution: ' MRNF — Données écoforestières'
-        });
+            map.addLayer({
+              id: 'fill-forest-types',
+              type: 'fill',
+              source: 'src-forest-types',
+              'source-layer': 'types_forestiers',
+              minzoom: 8,
+              paint: {
+                'fill-color': ['match', ['get', 'type_couv'],
+                  'R', '#2D6A4F',
+                  'F', '#C0392B',
+                  'M', '#F9A825',
+                  'transparent'
+                ],
+                'fill-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.25, 13, 0.45]
+              },
+              layout: { 'visibility': isVisible ? 'visible' : 'none' }
+            });
 
-        map.addLayer({
-          id: 'raster-forest-types',
-          type: 'raster',
-          source: 'src-forest-types',
-          paint: {
-            'raster-opacity': 0.6
-          },
-          layout: { 'visibility': isVisible ? 'visible' : 'none' }
-        });
+            map.addLayer({
+              id: 'line-forest-types',
+              type: 'line',
+              source: 'src-forest-types',
+              'source-layer': 'types_forestiers',
+              minzoom: 11,
+              paint: {
+                'line-color': 'rgba(0,0,0,0.15)',
+                'line-width': 0.4
+              },
+              layout: { 'visibility': isVisible ? 'visible' : 'none' }
+            });
 
-        if (descEl) descEl.textContent = 'WMS MFFP (en ligne ✓)';
+            map.on('click', 'fill-forest-types', function (e) {
+              var f = e.features && e.features[0]; if (!f) return;
+              var p = f.properties || {};
+              var typLabel = TYPE_COUV_LABELS[p.type_couv] || p.type_couv || '—';
+              var html = '<div class="popup-type">Écoforestier MRNF</div>' +
+                '<div class="popup-title">' + typLabel + '</div>' +
+                '<div class="popup-body" style="font-size:11px;line-height:1.7">' +
+                (p.gr_ess ? '<b>Essences&nbsp;:</b> ' + p.gr_ess + '<br>' : '') +
+                (p.cl_age ? '<b>Âge&nbsp;:</b> ' + p.cl_age + '<br>' : '') +
+                (p.cl_haut ? '<b>Hauteur&nbsp;:</b> ' + p.cl_haut + '<br>' : '') +
+                (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + p.type_eco + '<br>' : '') +
+                (p.origine ? '<b>Origine&nbsp;:</b> ' + p.origine : '') +
+                '</div>';
+              new maplibregl.Popup({ offset: 10, closeButton: true })
+                .setLngLat(e.lngLat).setHTML(html).addTo(map);
+            });
+            map.on('mouseenter', 'fill-forest-types', function () { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'fill-forest-types', function () { map.getCanvas().style.cursor = ''; });
+
+            if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 8)';
+          })
+          .catch(function () {
+            if (descEl) descEl.textContent = 'PMTiles non disponible — uploadez vers R2';
+          });
       }
 
       function loadLandUseLayer() {
@@ -3997,7 +4036,7 @@
         Object.keys(MRNF_LAYERS).forEach(function (key) { loadMRNFLayer(key, MRNF_LAYERS[key]); });
         loadCadastre();
         loadIndigenousLayer();
-        // loadForestTypesLayer(); // WMS MFFP indisponible (503)
+        loadForestTypesLayer();
         loadTrailsLayer();
         // loadLandUseLayer(); // WMS non disponible - données en format raster uniquement
         // loadMooseHabitatLayer(); // WMS non disponible - accès restreint sur Données Québec
@@ -4028,7 +4067,7 @@
             if (key === 'cadastre') {
               ids = ['line-cadastre', 'label-cadastre'];
             } else if (key === 'forest-types') {
-              ids = ['raster-forest-types'];
+              ids = ['fill-forest-types', 'line-forest-types'];
             } else if (key === 'trails') {
               ids = ['line-trails'];
             } else if (key === 'land-use' || key === 'moose-habitat') {
@@ -4060,7 +4099,8 @@
         renderHuntLogList();
       });
 
-      map.on('styledata', function () { if (!map.getSource('src-zec')) { loadAllLayers(); renderCustom300mCircles(); renderPreview300m(); } });
+      map.on('styledata', function () { if (!map.getSource('src-zec')) { loadAllLayers(); renderCustom300mCircles(); renderPreview300m(); }
+        else if (!map.getSource('src-forest-types')) { loadForestTypesLayer(); } });
       map.on('move', renderPreview300m);
 
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
@@ -4258,7 +4298,7 @@
             if (key === 'cadastre') {
               ids = ['line-cadastre', 'label-cadastre'];
             } else if (key === 'forest-types') {
-              ids = ['raster-forest-types'];
+              ids = ['fill-forest-types', 'line-forest-types'];
             } else if (key === 'trails') {
               ids = ['line-trails'];
             } else if (key === 'land-use' || key === 'moose-habitat') {

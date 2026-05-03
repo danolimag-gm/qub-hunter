@@ -89,8 +89,10 @@ def upload_file(client, bucket: str, local: Path, key: str, dry_run: bool) -> bo
 
 def main():
     parser = argparse.ArgumentParser(description="Upload les PMTiles vers Cloudflare R2")
-    parser.add_argument("--region", metavar="CODE_OU_ALL", default="all",
-                        help="Code région (ex: 04) ou 'all' (défaut)")
+    parser.add_argument("--region", metavar="CODE_OU_ALL", default=None,
+                        help="Code région cadastre (ex: 04) ou 'all'")
+    parser.add_argument("--file", metavar="CHEMIN", type=Path, default=None,
+                        help="Fichier PMTiles arbitraire à uploader")
     parser.add_argument("--bucket", default=os.getenv("R2_BUCKET", "qub-hunter"),
                         help="Nom du bucket R2 (défaut: qub-hunter ou $R2_BUCKET)")
     parser.add_argument("--prefix", default="cadastre/",
@@ -110,12 +112,20 @@ def main():
         print("  export R2_SECRET_ACCESS_KEY=<votre-secret>")
         sys.exit(1)
 
-    targets = list(REGIONS.keys()) if args.region == "all" else [args.region.zfill(2)]
-    files = [(TILES_DIR / f"cadastre_{code}.pmtiles", code) for code in targets]
-    files = [(p, c) for p, c in files if p.exists()]
+    # Mode fichier arbitraire
+    if args.file:
+        if not args.file.exists():
+            print(f"✗ Fichier introuvable : {args.file}", file=sys.stderr)
+            sys.exit(1)
+        files = [(args.file, args.file.name)]
+    else:
+        region_arg = args.region or "all"
+        targets = list(REGIONS.keys()) if region_arg == "all" else [region_arg.zfill(2)]
+        files = [(TILES_DIR / f"cadastre_{code}.pmtiles", code) for code in targets]
+        files = [(p, c) for p, c in files if p.exists()]
 
     if not files:
-        print("✗ Aucun PMTiles trouvé. Exécutez d'abord generate_pmtiles.py", file=sys.stderr)
+        print("✗ Aucun PMTiles trouvé.", file=sys.stderr)
         sys.exit(1)
 
     client = None if args.dry_run else get_r2_client(account_id, key_id, secret)
@@ -124,10 +134,13 @@ def main():
     print(f"  {len(files)} fichier(s) à uploader\n")
 
     success, failed = [], []
-    for local, code in files:
-        key = f"{args.prefix}cadastre_{code}.pmtiles"
+    for local, label in files:
+        if args.file:
+            key = f"{args.prefix}{local.name}"
+        else:
+            key = f"{args.prefix}cadastre_{label}.pmtiles"
         ok = upload_file(client, args.bucket, local, key, args.dry_run)
-        (success if ok else failed).append(code)
+        (success if ok else failed).append(label)
 
     print(f"\n✓ {len(success)}/{len(files)} fichiers uploadés")
     if failed:
