@@ -1769,6 +1769,7 @@
   <div class="crosshair-readout" id="crosshairReadout" aria-hidden="true">
     <div><span class="cr-label">LAT</span><span id="crLat">—</span></div>
     <div><span class="cr-label">LON</span><span id="crLon">—</span></div>
+    <div><span class="cr-label">ZOOM</span><span id="crZm">—</span></div>
   </div>
 
   <!-- SEARCH OVERLAY -->
@@ -1794,11 +1795,7 @@
     <span id="loadingMsg">Chargement…</span>
   </div>
 
-  <div class="compass-readout" id="compass">
-    <div><span class="label">LAT</span><span id="lat">—</span></div>
-    <div><span class="label">LON</span><span id="lon">—</span></div>
-    <div><span class="label">ZOOM</span><span id="zm">—</span></div>
-  </div>
+  <div class="compass-readout" id="compass" style="display:none"></div>
 
   <div class="legend" id="legend">
     <div class="legend-row">
@@ -4085,6 +4082,7 @@
         $('zm').textContent = map.getZoom().toFixed(1);
         $('crLat').textContent = c.lat.toFixed(5) + '°';
         $('crLon').textContent = c.lng.toFixed(5) + '°';
+        $('crZm').textContent = map.getZoom().toFixed(1);
       }
       map.on('move', updateCompass);
 
