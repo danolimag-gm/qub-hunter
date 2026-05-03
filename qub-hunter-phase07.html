@@ -1230,6 +1230,10 @@
       color: var(--forest-mid);
     }
 
+    .wp-btn.edit {
+      color: var(--bark);
+    }
+
     .wp-btn.del {
       color: var(--rust);
     }
@@ -1857,7 +1861,7 @@
   <div class="marker-modal" id="markerModal">
     <div class="modal-card">
       <div class="modal-handle"></div>
-      <div class="modal-title">Nouveau repère</div>
+      <div class="modal-title" id="modalTitle">Nouveau repère</div>
       <div class="modal-coords" id="modalCoords">—</div>
 
       <div class="modal-section-label">Catégorie</div>
@@ -1930,6 +1934,10 @@
           <span class="cat-emoji" aria-hidden="true">⚠️</span>
           <span class="cat-name">Danger</span>
         </button>
+        <button class="cat-btn" data-cat="cercle300m" aria-label="Catégorie Zone 300 m">
+          <span class="cat-emoji" aria-hidden="true">⭕</span>
+          <span class="cat-name">Zone 300 m</span>
+        </button>
       </div>
 
       <div class="modal-section-label">Nom du repère</div>
@@ -1939,6 +1947,12 @@
       <div class="modal-section-label">Note (optionnel)</div>
       <input class="modal-input" id="markerNote" type="text" placeholder="Trace fraîche, cache visible…"
         autocomplete="off" maxlength="120" />
+
+      <div class="modal-section-label" id="modalPosLabel" style="display:none">Position</div>
+      <div id="modalPosFields" style="display:none;gap:8px;flex-direction:row">
+        <input class="modal-input" id="editLat" type="number" step="0.00001" placeholder="Latitude" style="flex:1;min-width:0" />
+        <input class="modal-input" id="editLng" type="number" step="0.00001" placeholder="Longitude" style="flex:1;min-width:0" />
+      </div>
 
       <div class="modal-footer">
         <button class="modal-btn secondary" id="modalCancel">Annuler</button>
@@ -2670,7 +2684,8 @@
         eau: { emoji: '💧', nom: 'Point d\'eau', gpxSym: 'Water Source' },
         acces: { emoji: '🚘', nom: 'Accès véhicule', gpxSym: 'Parking Area' },
         sentier: { emoji: '🥾', nom: 'Accès sentier', gpxSym: 'Trail Head' },
-        danger: { emoji: '⚠️', nom: 'Attention', gpxSym: 'Danger Area' }
+        danger: { emoji: '⚠️', nom: 'Attention', gpxSym: 'Danger Area' },
+        cercle300m: { emoji: '⭕', nom: 'Zone 300 m', gpxSym: 'Dot' }
       };
 
       // ── WAYPOINTS — STOCKAGE ─────────────────────────────────────────────────
@@ -2758,6 +2773,7 @@
 
       // ── WAYPOINTS — CARTE ────────────────────────────────────────────────────
       function addWaypointToMap(wp) {
+        if (wp.cat === 'cercle300m') return; // circles rendered via renderCustom300mCircles
         var cat = CATEGORIES[wp.cat] || CATEGORIES.affut;
 
         var el = document.createElement('div');
@@ -2789,12 +2805,15 @@
       window.__qhDelWp = function (id) { deleteWaypoint(id); };
 
       function deleteWaypoint(id) {
+        var wp = findWp(id);
+        var wasCircle = wp && wp.cat === 'cercle300m';
         var m = waypointMarkers[id];
         if (m) { m.getPopup().remove(); m.remove(); delete waypointMarkers[id]; }
         var next = [];
         for (var i = 0; i < waypoints.length; i++) { if (waypoints[i].id !== id) next.push(waypoints[i]); }
         waypoints = next;
         saveWaypoints();
+        if (wasCircle) renderCustom300mCircles();
         renderWaypointList();
         showToast('Repère supprimé');
       }
@@ -2817,6 +2836,7 @@
             '</div>' +
             '<div class="wp-actions">' +
             '<button class="wp-btn goto" data-id="' + wp.id + '" title="Centrer">→</button>' +
+            '<button class="wp-btn edit" data-id="' + wp.id + '" title="Modifier">✏</button>' +
             '<button class="wp-btn del"  data-id="' + wp.id + '" title="Supprimer">×</button>' +
             '</div>' +
             '</div>';
@@ -2830,6 +2850,9 @@
             if (wp) { map.flyTo({ center: [wp.lng, wp.lat], zoom: 14, duration: 800 }); setPanelOpen(false); }
           });
         });
+        list.querySelectorAll('.wp-btn.edit').forEach(function (btn) {
+          btn.addEventListener('click', function () { openEditWaypointModal(btn.getAttribute('data-id')); });
+        });
         list.querySelectorAll('.wp-btn.del').forEach(function (btn) {
           btn.addEventListener('click', function () { deleteWaypoint(btn.getAttribute('data-id')); });
         });
@@ -2840,22 +2863,48 @@
         return null;
       }
 
-      // ── MODAL DE CRÉATION ────────────────────────────────────────────────────
-      var modalLng = null, modalLat = null, selectedCat = 'affut';
+      // ── MODAL DE CRÉATION / ÉDITION ─────────────────────────────────────────
+      var modalLng = null, modalLat = null, selectedCat = 'affut', editingWpId = null;
 
-      function openMarkerModal(lng, lat) {
+      function openMarkerModal(lng, lat, defaultCat) {
+        editingWpId = null;
         modalLng = lng; modalLat = lat;
-        selectedCat = 'affut';
+        selectedCat = defaultCat || 'affut';
+        $('modalTitle').textContent = 'Nouveau repère';
+        $('modalConfirm').textContent = 'Placer le repère';
         $('modalCoords').textContent = lat.toFixed(5) + '°, ' + lng.toFixed(5) + '°';
         $('markerName').value = '';
         $('markerNote').value = '';
+        $('modalPosLabel').style.display = 'none';
+        $('modalPosFields').style.display = 'none';
         updateCatUI();
         $('markerModal').classList.add('open');
         setTimeout(function () { $('markerName').focus(); }, 350);
       }
+
+      function openEditWaypointModal(id) {
+        var wp = findWp(id);
+        if (!wp) return;
+        editingWpId = id;
+        modalLat = wp.lat; modalLng = wp.lng;
+        selectedCat = wp.cat;
+        $('modalTitle').textContent = 'Modifier le repère';
+        $('modalConfirm').textContent = 'Enregistrer';
+        $('modalCoords').textContent = wp.lat.toFixed(5) + '°, ' + wp.lng.toFixed(5) + '°';
+        $('markerName').value = wp.name || '';
+        $('markerNote').value = wp.note || '';
+        $('editLat').value = wp.lat.toFixed(6);
+        $('editLng').value = wp.lng.toFixed(6);
+        $('modalPosLabel').style.display = '';
+        $('modalPosFields').style.display = 'flex';
+        updateCatUI();
+        $('markerModal').classList.add('open');
+        setTimeout(function () { $('markerName').focus(); }, 350);
+      }
+
       function closeMarkerModal() {
         $('markerModal').classList.remove('open');
-        modalLng = null; modalLat = null;
+        modalLng = null; modalLat = null; editingWpId = null;
       }
       function updateCatUI() {
         document.querySelectorAll('.cat-btn').forEach(function (btn) {
@@ -2863,8 +2912,33 @@
         });
       }
       function confirmAddMarker() {
-        if (modalLng === null) return;
         var cat = CATEGORIES[selectedCat] || CATEGORIES.affut;
+
+        if (editingWpId) {
+          var wp = findWp(editingWpId);
+          if (!wp) { closeMarkerModal(); return; }
+          var wasCircle = wp.cat === 'cercle300m';
+          // Apply optional position override
+          var newLat = parseFloat($('editLat').value);
+          var newLng = parseFloat($('editLng').value);
+          if (!isNaN(newLat) && !isNaN(newLng) && newLat >= 44 && newLat <= 63 && newLng >= -80 && newLng <= -57) {
+            wp.lat = newLat; wp.lng = newLng;
+          }
+          wp.cat = selectedCat;
+          wp.name = $('markerName').value.trim() || cat.nom;
+          wp.note = $('markerNote').value.trim();
+          saveWaypoints();
+          var m = waypointMarkers[wp.id];
+          if (m) { m.remove(); delete waypointMarkers[wp.id]; }
+          if (wp.cat !== 'cercle300m') addWaypointToMap(wp);
+          if (wasCircle || wp.cat === 'cercle300m') renderCustom300mCircles();
+          renderWaypointList();
+          closeMarkerModal();
+          showToast('Repère modifié — ' + wp.name);
+          return;
+        }
+
+        if (modalLng === null) return;
         var wp = {
           id: makeId(),
           cat: selectedCat,
@@ -2876,7 +2950,8 @@
         };
         waypoints.push(wp);
         saveWaypoints();
-        addWaypointToMap(wp);
+        if (wp.cat !== 'cercle300m') addWaypointToMap(wp);
+        else renderCustom300mCircles();
         renderWaypointList();
         closeMarkerModal();
         showToast('Repère ajouté — ' + wp.name);
@@ -3777,26 +3852,24 @@
 
       // ── CUSTOM 300M CIRCLES (placed by user) ─────────────────────────────────
       function addCustom300mCircle(lat, lng) {
-        var id = 'custom-circle-' + Date.now();
-        var circle = { id: id, lat: lat, lng: lng };
-        custom300mCircles.push(circle);
-        renderCustom300mCircles();
-        showToast('Cercle 300 m ajouté');
+        openMarkerModal(lng, lat, 'cercle300m');
       }
 
       function removeCustom300mCircle(id) {
-        custom300mCircles = custom300mCircles.filter(function (c) { return c.id !== id; });
-        renderCustom300mCircles();
+        deleteWaypoint(id);
       }
 
       function clearCustom300mCircles() {
-        custom300mCircles = [];
+        waypoints = waypoints.filter(function (wp) { return wp.cat !== 'cercle300m'; });
+        saveWaypoints();
         renderCustom300mCircles();
+        renderWaypointList();
         showToast('Cercles 300 m effacés');
       }
 
       function renderCustom300mCircles() {
-        var features = custom300mCircles.map(function (c) {
+        var circles = waypoints.filter(function (wp) { return wp.cat === 'cercle300m'; });
+        var features = circles.map(function (c) {
           var geojson = makeCircleGeoJSON(c.lat, c.lng, 300);
           return {
             type: 'Feature',
@@ -3825,7 +3898,7 @@
         }
 
         // Add center markers
-        var centerFeatures = custom300mCircles.map(function (c) {
+        var centerFeatures = circles.map(function (c) {
           return {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [c.lng, c.lat] },
@@ -3916,6 +3989,7 @@
         // Charger les waypoints sauvegardés
         loadWaypointsFromStorage();
         for (var i = 0; i < waypoints.length; i++) { addWaypointToMap(waypoints[i]); }
+        renderCustom300mCircles();
         renderWaypointList();
 
         // Charger le carnet de chasse
