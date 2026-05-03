@@ -1733,8 +1733,8 @@
         autocomplete="off" autocorrect="off" spellcheck="false" />
       <button class="search-close" id="searchClose">×</button>
     </div>
-    <div class="search-hint">Lot: 5778374 · Multi-lots: 5778374,5854526 · Territoire: ZEC Bessonne · GPS:
-      47.6,-73.4<br /><small>✓ Les lots des zones 02-29 sont maintenant en local (recherche instantanée)</small></div>
+    <div class="search-hint">Lot: 5778374 · Territoire: ZEC Bessonne<br>
+      DD: 47.6,-73.4 · DMM: 47°36.0'N 73°24.0'W · DMS: 47°36'0"N 73°24'0"W</div>
     <div class="search-results" id="searchResults"></div>
   </div>
 
@@ -4355,10 +4355,48 @@
       }
 
       function tryCoordinateSearch(query) {
-        var m = query.trim().match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/); if (!m) return null;
-        var a = parseFloat(m[1]), b = parseFloat(m[2]), lat, lng;
-        if (a >= 44 && a <= 63 && b >= -80 && b <= -57) { lat = a; lng = b; } else if (b >= 44 && b <= 63 && a >= -80 && a <= -57) { lat = b; lng = a; } else return null;
-        return [{ name: lat.toFixed(4) + ', ' + lng.toFixed(4), type: 'Coordonnées', lat: lat, lng: lng }];
+        var q = query.trim();
+
+        // Degrés/minutes/secondes → degrés décimaux (S et W → négatif)
+        function toDeg(d, m, s, dir) {
+          var dd = Math.abs(parseFloat(d)) + parseFloat(m || 0) / 60 + parseFloat(s || 0) / 3600;
+          return /[SWsw]/.test(dir || '') ? -dd : dd;
+        }
+        function inQc(lat, lng) { return lat >= 44 && lat <= 63 && lng >= -80 && lng <= -57; }
+        function result(lat, lng, fmt) {
+          return [{ name: lat.toFixed(5) + ', ' + lng.toFixed(5), type: 'Coordonnées ' + fmt, lat: lat, lng: lng }];
+        }
+
+        var lat, lng, m;
+
+        // ── DD : "45.31485, -73.73354" ─────────────────────────────────────────
+        m = q.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/);
+        if (m) {
+          var a = parseFloat(m[1]), b = parseFloat(m[2]);
+          if (inQc(a, b)) return result(a, b, 'DD');
+          if (inQc(b, a)) return result(b, a, 'DD');
+          return null;
+        }
+
+        // ── DMS : 45°18'53"N 73°44'0"W  ou  45 18 53 N, 73 44 0 W ─────────────
+        m = q.match(/(\d+)\s*[°d\s]\s*(\d+)\s*['''′]\s*(\d+\.?\d*)\s*["″"]?\s*([NSns])\s*[,;\s]*\s*(\d+)\s*[°d\s]\s*(\d+)\s*['''′]\s*(\d+\.?\d*)\s*["″"]?\s*([EOWow])/);
+        if (m) {
+          lat = toDeg(m[1], m[2], m[3], m[4]);
+          lng = toDeg(m[5], m[6], m[7], m[8]);
+          if (inQc(lat, lng)) return result(lat, lng, 'DMS');
+          return null;
+        }
+
+        // ── DMM : 45°18.891'N 73°44.012'W  ou  45 18.891 N, 73 44.012 W ────────
+        m = q.match(/(\d+)\s*[°d\s]\s*(\d+\.\d+)\s*['''′]?\s*([NSns])\s*[,;\s]*\s*(\d+)\s*[°d\s]\s*(\d+\.\d+)\s*['''′]?\s*([EOWow])/);
+        if (m) {
+          lat = toDeg(m[1], m[2], 0, m[3]);
+          lng = toDeg(m[4], m[5], 0, m[6]);
+          if (inQc(lat, lng)) return result(lat, lng, 'DMM');
+          return null;
+        }
+
+        return null;
       }
 
       function searchLocalLayers(query) {
