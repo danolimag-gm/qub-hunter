@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Génère les fichiers PMTiles à partir des GeoJSON traités.
+Génère les PMTiles du cadastre par région à partir des GeoJSON traités.
 
-Prérequis : Tippecanoe installé
-  macOS  : brew install tippecanoe
-  Linux  : https://github.com/felt/tippecanoe#installation
+Prérequis : tippecanoe installé (brew install tippecanoe)
 
 Usage:
-    python generate_pmtiles.py --region mauricie
-    python generate_pmtiles.py --region mauricie --min-zoom 10 --max-zoom 16
+    python generate_pmtiles.py --region all
+    python generate_pmtiles.py --region 04
+    python generate_pmtiles.py --list
 """
 import argparse
 import shutil
@@ -16,120 +15,141 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROC_DIR   = Path(__file__).parent.parent / "data" / "processed"
-TILES_DIR  = Path(__file__).parent.parent / "data" / "pmtiles"
+from tqdm import tqdm
 
-# Paramètres Tippecanoe par défaut pour le cadastre
-# z10-16 : raisonnable pour les lots (~3.5M parcelles à z16 = ~800 Mo)
+PROC_DIR  = Path(__file__).parent.parent / "data" / "processed"
+TILES_DIR = Path(__file__).parent.parent / "data" / "pmtiles"
+
 DEFAULT_MIN_ZOOM = 10
 DEFAULT_MAX_ZOOM = 16
 
+REGIONS = {
+    "01": "Bas-Saint-Laurent",
+    "02": "Saguenay-Lac-Saint-Jean",
+    "03": "Capitale-Nationale",
+    "04": "Mauricie",
+    "05": "Estrie",
+    "06": "Montreal",
+    "07": "Outaouais",
+    "08": "Abitibi-Temiscamingue",
+    "09": "Cote-Nord",
+    "10": "Nord-du-Quebec",
+    "11": "Gaspesie-Iles-de-la-Madeleine",
+    "12": "Chaudiere-Appalaches",
+    "13": "Laval",
+    "14": "Lanaudiere",
+    "15": "Laurentides",
+    "16": "Monteregie",
+    "17": "Centre-du-Quebec",
+}
 
-def check_tippecanoe():
+
+def check_tippecanoe() -> str:
     path = shutil.which("tippecanoe")
-    if path is None:
+    if not path:
         print("✗ Tippecanoe introuvable.", file=sys.stderr)
-        print("  Installation :")
-        print("    macOS  : brew install tippecanoe")
-        print("    Ubuntu : sudo apt-get install tippecanoe")
-        print("    Manuel : https://github.com/felt/tippecanoe#installation")
+        print("  macOS  : brew install tippecanoe")
+        print("  Linux  : https://github.com/felt/tippecanoe#installation")
         sys.exit(1)
+    result = subprocess.run([path, "--version"], capture_output=True, text=True)
+    version = result.stderr.strip() or result.stdout.strip()
+    print(f"✓ {version}")
     return path
 
 
-def find_geojson(region: str) -> Path:
-    path = PROC_DIR / region / f"cadastre_{region}.geojson"
+def find_geojson(region_code: str) -> Path | None:
+    path = PROC_DIR / f"cadastre_{region_code}.geojson"
     if not path.exists():
-        print(f"✗ GeoJSON introuvable : {path}", file=sys.stderr)
-        print(f"  Exécutez d'abord : python process_cadastre.py --region {region}", file=sys.stderr)
-        sys.exit(1)
+        return None
     return path
 
 
-def run_tippecanoe(geojson: Path, output: Path, min_zoom: int, max_zoom: int, layer_name: str):
-    cmd = [
-        "tippecanoe",
-        "--output", str(output),
-        "--layer", layer_name,
-        "--minimum-zoom", str(min_zoom),
-        "--maximum-zoom", str(max_zoom),
-        # Simplification automatique selon le zoom
-        "--simplification", "4",
-        # Garder tous les features même à bas zoom
-        "--no-feature-limit",
-        "--no-tile-size-limit",
-        # Attributs à conserver
-        "--include", "NO_LOT",
-        "--include", "NO_CADASTRE",
-        "--include", "SUPERFICIE",
-        # Forcer PMTiles v3
-        "--output-to-directory" if output.suffix != ".pmtiles" else "--output",
-        str(output),
-        str(geojson),
-    ]
-
-    # Reconstruire la commande proprement
+def run_tippecanoe(geojson: Path, output: Path, min_zoom: int, max_zoom: int) -> bool:
     cmd = [
         "tippecanoe",
         f"--output={output}",
-        f"--layer={layer_name}",
+        "--layer=cadastre",
         f"--minimum-zoom={min_zoom}",
         f"--maximum-zoom={max_zoom}",
         "--simplification=4",
-        "--no-feature-limit",
-        "--no-tile-size-limit",
+        "--drop-densest-as-needed",
         "--include=NO_LOT",
         "--include=NO_CADASTRE",
         "--include=SUPERFICIE",
         "--force",
+        "--quiet",
         str(geojson),
     ]
-
-    print(f"\n→ Tippecanoe : {' '.join(cmd[:3])} … (peut prendre plusieurs minutes)")
-    print(f"  Zoom {min_zoom}–{max_zoom} | couche : {layer_name}")
-
-    result = subprocess.run(cmd, capture_output=False, text=True)
+    result = subprocess.run(cmd)
     return result.returncode == 0
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Génère les PMTiles du cadastre")
-    parser.add_argument("--region", required=True, metavar="NOM",
-                        help="Région à traiter (ex: mauricie)")
-    parser.add_argument("--min-zoom", type=int, default=DEFAULT_MIN_ZOOM,
-                        help=f"Zoom minimum (défaut: {DEFAULT_MIN_ZOOM})")
-    parser.add_argument("--max-zoom", type=int, default=DEFAULT_MAX_ZOOM,
-                        help=f"Zoom maximum (défaut: {DEFAULT_MAX_ZOOM})")
-    parser.add_argument("--layer", default="cadastre",
-                        help="Nom de la couche dans le PMTiles (défaut: cadastre)")
-    args = parser.parse_args()
+def process_region(region_code: str, min_zoom: int, max_zoom: int) -> bool:
+    nom = REGIONS.get(region_code, f"Region-{region_code}")
+    geojson = find_geojson(region_code)
 
-    tippecanoe = check_tippecanoe()
-    print(f"✓ Tippecanoe : {tippecanoe}")
+    if not geojson:
+        print(f"  ⚠ GeoJSON introuvable pour {region_code} ({nom}) — ignoré.")
+        print(f"    Exécutez : python process_cadastre.py --region {region_code}")
+        return False
 
-    geojson = find_geojson(args.region)
     size_mb = geojson.stat().st_size / 1_048_576
-    print(f"✓ GeoJSON source : {size_mb:.1f} Mo")
+    output = TILES_DIR / f"cadastre_{region_code}.pmtiles"
+
+    if output.exists():
+        print(f"  → {region_code} ({nom}) — {size_mb:.1f} Mo GeoJSON …")
+    else:
+        print(f"  → {region_code} ({nom}) — {size_mb:.1f} Mo GeoJSON …")
 
     TILES_DIR.mkdir(parents=True, exist_ok=True)
-    output = TILES_DIR / f"cadastre_{args.region}.pmtiles"
+    ok = run_tippecanoe(geojson, output, min_zoom, max_zoom)
 
-    success = run_tippecanoe(geojson, output, args.min_zoom, args.max_zoom, args.layer)
+    if ok and output.exists():
+        out_mb = output.stat().st_size / 1_048_576
+        print(f"  ✓ cadastre_{region_code}.pmtiles — {out_mb:.1f} Mo")
+        return True
+    else:
+        print(f"  ✗ Tippecanoe a échoué pour {region_code}", file=sys.stderr)
+        return False
 
-    if not success:
-        print("\n✗ Tippecanoe a échoué.", file=sys.stderr)
-        sys.exit(1)
 
-    out_mb = output.stat().st_size / 1_048_576 if output.exists() else 0
-    print(f"\n✓ PMTiles généré : {output.name} ({out_mb:.1f} Mo)")
-    print(f"  Chemin complet : {output}")
-    print()
-    print("Prochaines étapes :")
-    print("  1. Déployer sur Cloudflare R2 ou GitHub Pages :")
-    print(f"     cp {output} ../web/pmtiles/")
-    print("  2. Dans qub-hunter-phase02.html, définir :")
-    print(f"     var CADASTRE_PMTILES = './pmtiles/cadastre_{args.region}.pmtiles';")
-    print("  3. Activer la couche cadastre dans la carte.")
+def main():
+    parser = argparse.ArgumentParser(description="Génère les PMTiles du cadastre par région")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--region", metavar="CODE_OU_ALL",
+                       help="Code région (ex: 04) ou 'all' pour les 17 régions")
+    group.add_argument("--list", action="store_true", help="Liste les régions et leur statut")
+    parser.add_argument("--min-zoom", type=int, default=DEFAULT_MIN_ZOOM)
+    parser.add_argument("--max-zoom", type=int, default=DEFAULT_MAX_ZOOM)
+    args = parser.parse_args()
+
+    if args.list:
+        print("\nStatut PMTiles :\n")
+        for code, nom in REGIONS.items():
+            geojson = find_geojson(code)
+            pmtiles = TILES_DIR / f"cadastre_{code}.pmtiles"
+            g = "✓ GeoJSON" if geojson else "  -      "
+            p = "✓ PMTiles" if pmtiles.exists() else "  -      "
+            print(f"  {code}  {g}  {p}  {nom}")
+        print()
+        return
+
+    check_tippecanoe()
+
+    targets = list(REGIONS.keys()) if args.region == "all" else [args.region.zfill(2)]
+    success, failed = [], []
+
+    print(f"\n→ Génération PMTiles (zoom {args.min_zoom}–{args.max_zoom})\n")
+    for code in targets:
+        ok = process_region(code, args.min_zoom, args.max_zoom)
+        (success if ok else failed).append(code)
+
+    print(f"\n✓ {len(success)}/{len(targets)} régions générées")
+    if failed:
+        print(f"  ✗ Échecs : {', '.join(failed)}")
+
+    print(f"\n  Fichiers dans : {TILES_DIR}")
+    print("  Prochaine étape : python upload_r2.py")
 
 
 if __name__ == "__main__":
