@@ -634,9 +634,9 @@
       left: calc(50% + 22px);
       pointer-events: none;
       z-index: 6;
-      background: rgba(29, 40, 24, 0.75);
-      -webkit-backdrop-filter: blur(6px);
-      backdrop-filter: blur(6px);
+      background: rgba(29, 40, 24, 0.35);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
       color: var(--paper);
       padding: 4px 8px;
       border-radius: 4px;
@@ -644,7 +644,7 @@
       font-size: 10px;
       letter-spacing: 0.06em;
       line-height: 1.6;
-      border: 1px solid rgba(212, 197, 160, 0.15);
+      border: 1px solid rgba(212, 197, 160, 0.1);
       white-space: nowrap;
     }
     .crosshair-readout .cr-label {
@@ -1769,7 +1769,6 @@
   <div class="crosshair-readout" id="crosshairReadout" aria-hidden="true">
     <div><span class="cr-label">LAT</span><span id="crLat">—</span></div>
     <div><span class="cr-label">LON</span><span id="crLon">—</span></div>
-    <div><span class="cr-label">ALT</span><span id="crAlt">—</span></div>
   </div>
 
   <!-- SEARCH OVERLAY -->
@@ -4090,24 +4089,6 @@
       map.on('move', updateCompass);
 
       // Elevation fetch on moveend (debounced)
-      var elevTimer = null;
-      function fetchElevation() {
-        if (!map) return;
-        var c = map.getCenter();
-        clearTimeout(elevTimer);
-        elevTimer = setTimeout(function () {
-          $('crAlt').textContent = '…';
-          fetch('https://api.opentopodata.org/v1/srtm30m?locations=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5))
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-              var elev = d && d.results && d.results[0] && d.results[0].elevation;
-              $('crAlt').textContent = elev != null ? Math.round(elev) + ' m' : '—';
-            })
-            .catch(function () { $('crAlt').textContent = '—'; });
-        }, 800);
-      }
-      map.on('moveend', fetchElevation);
-      fetchElevation();
 
       // ── SOURCE SWITCHER ───────────────────────────────────────────────────────
       $('switchSource').addEventListener('click', function () {
