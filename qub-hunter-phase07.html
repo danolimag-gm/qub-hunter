@@ -435,6 +435,10 @@
       align-items: center;
       gap: 12px;
       border-bottom: 1px dashed var(--paper-aged);
+      position: sticky;
+      top: 0;
+      background: var(--paper);
+      z-index: 1;
     }
 
     .panel-title {
@@ -4200,6 +4204,7 @@
             var mrc = el.getAttribute('data-mrc');
 
             map.flyTo({ center: [lng, lat], zoom: lotNo ? 16 : 12, duration: 1000 });
+            setPanelOpen(false);
             if (activeMarker) activeMarker.remove();
             activeMarker = new maplibregl.Marker({ color: '#b88a3e' }).setLngLat([lng, lat]).addTo(map);
 
