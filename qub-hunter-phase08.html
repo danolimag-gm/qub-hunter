@@ -526,7 +526,7 @@
     .toggle {
       position: relative;
       width: 44px;
-      height: 44px;
+      height: 26px;
       flex-shrink: 0;
     }
 
@@ -534,13 +534,14 @@
       opacity: 0;
       width: 0;
       height: 0;
+      position: absolute;
     }
 
     .toggle-slider {
       position: absolute;
       inset: 0;
-      background: var(--paper-aged);
-      border-radius: 22px;
+      background: var(--bark-light);
+      border-radius: 13px;
       cursor: pointer;
       transition: background 0.2s;
     }
@@ -550,20 +551,25 @@
       position: absolute;
       width: 20px;
       height: 20px;
-      left: 12px;
-      top: 12px;
-      background: var(--paper);
+      left: 3px;
+      top: 3px;
+      background: #fff;
       border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
       transition: transform 0.2s;
     }
 
     .toggle input:checked+.toggle-slider {
-      background: var(--forest-mid);
+      background: #34c759;
     }
 
     .toggle input:checked+.toggle-slider::before {
-      transform: translateX(0);
+      transform: translateX(18px);
+    }
+
+    .toggle input:disabled+.toggle-slider {
+      opacity: 0.35;
+      cursor: not-allowed;
     }
 
     /* ── SECTION HORS-LIGNE ── */
@@ -939,7 +945,7 @@
       z-index: 8;
       display: grid;
       grid-template-columns: 50px;
-      grid-template-rows: repeat(4, 50px);
+      grid-template-rows: repeat(5, 50px);
       gap: 12px;
       pointer-events: none;
       opacity: 0;
@@ -1115,6 +1121,32 @@
       color: var(--bark-light);
       letter-spacing: 0.08em;
       margin-bottom: 14px;
+    }
+
+    .modal-save-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      background: var(--forest-deep);
+      color: var(--paper);
+      border: none;
+      border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+    .modal-cancel-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      background: transparent;
+      color: var(--bark);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
     }
 
     .modal-section-label {
@@ -1830,8 +1862,11 @@
     </svg>
   </button>
 
-  <!-- ACTION MENU (ordre bas→haut : GPS, Repère, Partager, Recherche) -->
+  <!-- ACTION MENU (ordre bas→haut : GPS, Repère, Partager, Recherche, Carnet) -->
   <div class="action-menu" id="actionMenu">
+    <button class="menu-action-btn" id="menuHunt" aria-label="Ajouter au carnet">
+      <span style="font-size:22px">🦌</span>
+    </button>
     <button class="menu-action-btn" id="menuSearch" aria-label="Rechercher">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
         stroke-linejoin="round">
@@ -1973,6 +2008,67 @@
     </div>
   </div>
 
+  <!-- HUNT LOG MODAL -->
+  <div class="marker-modal" id="huntModal">
+    <div class="modal-card">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Nouvelle prise</div>
+      <div class="modal-coords" id="huntCoords">—</div>
+
+      <div class="modal-section-label">Espèce</div>
+      <div class="cat-grid" id="huntSpeciesGrid">
+        <button class="cat-btn selected" data-species="Orignal"><span class="cat-emoji">🫎</span><span class="cat-name">Orignal</span></button>
+        <button class="cat-btn" data-species="Ours"><span class="cat-emoji">🐻</span><span class="cat-name">Ours</span></button>
+        <button class="cat-btn" data-species="Chevreuil"><span class="cat-emoji">🦌</span><span class="cat-name">Chevreuil</span></button>
+        <button class="cat-btn" data-species="Cerf"><span class="cat-emoji">🦌</span><span class="cat-name">Cerf</span></button>
+        <button class="cat-btn" data-species="Sanglier"><span class="cat-emoji">🐗</span><span class="cat-name">Sanglier</span></button>
+        <button class="cat-btn" data-species="Dindon"><span class="cat-emoji">🦃</span><span class="cat-name">Dindon</span></button>
+        <button class="cat-btn" data-species="Perdrix"><span class="cat-emoji">🐦</span><span class="cat-name">Perdrix</span></button>
+      </div>
+
+      <div class="modal-section-label">Sexe</div>
+      <div style="display:flex;gap:10px;margin-bottom:4px">
+        <label style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer">
+          <input type="radio" name="huntSexe" id="huntSexeM" value="Mâle" checked> Mâle
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer">
+          <input type="radio" name="huntSexe" id="huntSexeF" value="Femelle"> Femelle
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer">
+          <input type="radio" name="huntSexe" id="huntSexeU" value="Inconnu"> Inconnu
+        </label>
+      </div>
+
+      <div class="modal-section-label">Poids (kg)</div>
+      <input class="modal-input" id="huntPoids" type="number" min="0" step="0.5" placeholder="Ex : 185" />
+
+      <div class="modal-section-label">Arme</div>
+      <select class="modal-input" id="huntArme" style="cursor:pointer">
+        <option value="">— Sélectionner —</option>
+        <option value="Carabine">Carabine</option>
+        <option value="Fusil">Fusil</option>
+        <option value="Arc">Arc</option>
+        <option value="Arbalète">Arbalète</option>
+        <option value="Autre">Autre</option>
+      </select>
+
+      <div class="modal-section-label">Calibre / Modèle</div>
+      <input class="modal-input" id="huntCalibre" type="text" placeholder="Ex : .308 Win, 12 ga, 70 lbs" autocomplete="off" maxlength="40" />
+
+      <div class="modal-section-label">Notes</div>
+      <input class="modal-input" id="huntNotes" type="text" placeholder="Conditions, distance, détails…" autocomplete="off" maxlength="120" />
+
+      <div style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark);line-height:1.8" id="huntAutoInfo">
+        <div><span style="color:var(--bark-light)">DATE</span> <span id="huntDate">—</span></div>
+        <div><span style="color:var(--bark-light)">LAT</span> <span id="huntLat">—</span> &nbsp;<span style="color:var(--bark-light)">LON</span> <span id="huntLon">—</span></div>
+        <div><span style="color:var(--bark-light)">ZONE</span> <span id="huntZone">—</span></div>
+      </div>
+
+      <button class="modal-save-btn" id="huntSaveBtn">Enregistrer la prise</button>
+      <button class="modal-cancel-btn" id="huntCancelBtn">Annuler</button>
+    </div>
+  </div>
+
   <!-- PANEL -->
   <aside class="panel collapsed" id="panel">
     <div class="panel-handle" id="panelHandle"></div>
@@ -2035,7 +2131,7 @@
             <div class="layer-name">Zones 1–29</div>
             <div class="layer-desc" id="desc-zones">chargement…</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="zones" checked><span
+          <label class="toggle"><input type="checkbox" data-layer="zones"><span
               class="toggle-slider"></span></label>
         </div>
         <div
@@ -2722,11 +2818,17 @@
         huntLog.forEach(function (entry, index) {
           var div = document.createElement('div');
           div.className = 'hunt-log-item';
+          var sub = [];
+          if (entry.sexe && entry.sexe !== 'Inconnu') sub.push(entry.sexe);
+          if (entry.poids) sub.push(entry.poids + ' kg');
+          if (entry.arme) sub.push(entry.arme);
+          if (entry.calibre) sub.push(entry.calibre);
+          if (entry.zone) sub.push('Zone ' + entry.zone);
           div.innerHTML =
             '<div class="hunt-log-icon">' + (entry.icon || '🦌') + '</div>' +
             '<div class="hunt-log-info">' +
             '<div class="hunt-log-species">' + escXml(entry.species || 'Sans nom') + '</div>' +
-            '<div class="hunt-log-details">' + escXml(entry.details || '') + '</div>' +
+            '<div class="hunt-log-details">' + escXml(sub.join(' · ')) + '</div>' +
             '<div class="hunt-log-date">' + escXml(entry.date || '') + '</div>' +
             '</div>' +
             '<button class="hunt-log-delete" data-index="' + index + '">✕</button>';
@@ -2747,18 +2849,11 @@
         });
       }
 
-      function addHuntLogEntry(species, details, icon) {
-        var now = new Date();
-        var dateStr = now.toLocaleDateString('fr-CA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-        huntLog.push({
-          species: species,
-          details: details,
-          icon: icon,
-          date: dateStr
-        });
+      function addHuntLogEntry(entry) {
+        huntLog.push(entry);
         saveHuntLog();
         renderHuntLogList();
-        showToast('Entrée ajoutée');
+        showToast('Prise enregistrée !');
       }
 
       function saveWaypoints() {
@@ -3129,13 +3224,7 @@
       });
 
       // ── CARNET DE CHASSE ───────────────────────────────────────────────────────
-      $('addHuntLogBtn').addEventListener('click', function () {
-        var species = prompt('Espèce (ex: Cerf, Orignal, Ours):');
-        if (!species) return;
-        var details = prompt('Détails (ex: Poids, Sexe, Lieu):', '');
-        var icon = prompt('Icône (ex: 🦌, 🐻, 🦌):', '🦌') || '🦌';
-        addHuntLogEntry(species, details, icon);
-      });
+      $('addHuntLogBtn').addEventListener('click', openHuntModal);
 
       $('clearHuntLogBtn').addEventListener('click', function () {
         if (!huntLog.length) { showToast('Carnet vide'); return; }
@@ -3145,6 +3234,83 @@
         renderHuntLogList();
         showToast('Carnet vidé');
       });
+
+      // ── CARNET MODAL ────────────────────────────────────────────────────────
+      var huntSelectedSpecies = 'Orignal';
+      var HUNT_SPECIES_ICONS = { Orignal:'🫎', Ours:'🐻', Chevreuil:'🦌', Cerf:'🦌', Sanglier:'🐗', Dindon:'🦃', Perdrix:'🐦' };
+
+      function openHuntModal() {
+        var c = map.getCenter();
+        var now = new Date();
+        $('huntDate').textContent = now.toLocaleDateString('fr-CA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        $('huntLat').textContent = c.lat.toFixed(5) + '°';
+        $('huntLon').textContent = c.lng.toFixed(5) + '°';
+
+        // Auto-detect zone
+        var zoneFeatures = map.queryRenderedFeatures(map.project([c.lng, c.lat]), { layers: ['fill-zones'] });
+        var zoneName = '—';
+        if (zoneFeatures && zoneFeatures.length) {
+          var p = zoneFeatures[0].properties;
+          zoneName = p.NO_ZONE || p.no_zone || p.ZONE || p.zone || '?';
+        }
+        $('huntZone').textContent = zoneName;
+        $('huntCoords').textContent = c.lat.toFixed(4) + '°, ' + c.lng.toFixed(4) + '°';
+
+        // Reset form
+        $('huntPoids').value = '';
+        $('huntArme').value = '';
+        $('huntCalibre').value = '';
+        $('huntNotes').value = '';
+        document.getElementById('huntSexeM').checked = true;
+
+        // Reset species selection
+        huntSelectedSpecies = 'Orignal';
+        document.querySelectorAll('#huntSpeciesGrid .cat-btn').forEach(function(b) {
+          b.classList.toggle('selected', b.getAttribute('data-species') === 'Orignal');
+        });
+
+        $('huntModal').classList.add('open');
+      }
+
+      document.querySelectorAll('#huntSpeciesGrid .cat-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          huntSelectedSpecies = this.getAttribute('data-species');
+          document.querySelectorAll('#huntSpeciesGrid .cat-btn').forEach(function(b) { b.classList.remove('selected'); });
+          this.classList.add('selected');
+        });
+      });
+
+      $('huntSaveBtn').addEventListener('click', function() {
+        var c = map.getCenter();
+        var now = new Date();
+        var sexeEl = document.querySelector('input[name="huntSexe"]:checked');
+        addHuntLogEntry({
+          species: huntSelectedSpecies,
+          icon: HUNT_SPECIES_ICONS[huntSelectedSpecies] || '🦌',
+          date: now.toLocaleDateString('fr-CA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+          lat: c.lat.toFixed(5),
+          lon: c.lng.toFixed(5),
+          zone: $('huntZone').textContent,
+          sexe: sexeEl ? sexeEl.value : '',
+          poids: $('huntPoids').value || '',
+          arme: $('huntArme').value || '',
+          calibre: $('huntCalibre').value || '',
+          notes: $('huntNotes').value || ''
+        });
+        $('huntModal').classList.remove('open');
+        setPanelOpen(true);
+      });
+
+      $('huntCancelBtn').addEventListener('click', function() { $('huntModal').classList.remove('open'); });
+      $('huntModal').addEventListener('click', function(e) { if (e.target === $('huntModal')) $('huntModal').classList.remove('open'); });
+
+      if ($('menuHunt')) {
+        $('menuHunt').addEventListener('click', function() {
+          $('actionMenu').classList.remove('open');
+          $('menuFab').classList.remove('open');
+          openHuntModal();
+        });
+      }
 
       // ── HELPER XML ESCAPE ────────────────────────────────────────────────────
       function escXml(s) {
