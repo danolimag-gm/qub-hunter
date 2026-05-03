@@ -4465,8 +4465,10 @@
           }
 
           // 3. Fallback: API ArcGIS cadastre (requête par NO_LOT)
+          // Reformater avec espaces : "6020038" → "6 020 038"
+          var lotNoSpaced = normalizedSearch.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
           var arcgisUrl = 'https://geo.environnement.gouv.qc.ca/donnees/rest/services/Reference/Cadastre_allege/MapServer/0/query';
-          var params = 'where=' + encodeURIComponent("NO_LOT LIKE '%" + lotNo.replace(/\s/g,'') + "%' OR NO_LOT LIKE '%" + lotNo + "%'") +
+          var params = 'where=' + encodeURIComponent("NO_LOT = '" + lotNoSpaced + "'") +
             '&outFields=NO_LOT&outSR=4326&returnGeometry=true&resultRecordCount=1&f=geojson';
           return fetch(arcgisUrl + '?' + params)
             .then(function(r) { return r.json(); })
