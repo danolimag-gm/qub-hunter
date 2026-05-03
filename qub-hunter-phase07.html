@@ -4051,7 +4051,7 @@
         renderHuntLogList();
       });
 
-      map.on('styledata', function () { if (!map.getSource('src-zec')) loadAllLayers(); });
+      map.on('styledata', function () { if (!map.getSource('src-zec')) { loadAllLayers(); renderCustom300mCircles(); } });
 
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
       map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
