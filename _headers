@@ -1,11 +1,11 @@
 # Cache-Control headers for iOS compatibility
 # Prevents long-term caching of HTML and manifest files
 
-*.html
+/*.html
   Cache-Control: no-cache, no-store, must-revalidate
 
-manifest.json
+/manifest.json
   Cache-Control: no-cache, no-store, must-revalidate
 
-sw.js
+/sw.js
   Cache-Control: no-cache, no-store, must-revalidate
