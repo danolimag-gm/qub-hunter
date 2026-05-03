@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """
-Convertit les shapefiles du cadastre rénové (EPSG:32198) en GeoJSON WGS84 simplifié.
+Convertit le shapefile province-entière en 17 GeoJSON par région administrative.
 
 Opérations :
-  1. Reprojection EPSG:32198 → EPSG:4326
-  2. Sélection des champs utiles (NO_LOT, NO_CADASTRE, SUPERFICIE)
-  3. Suppression des géométries invalides
-  4. Simplification légère (tolérance adaptée au zoom cible)
-  5. Export GeoJSON par tuile de 0.5° (préparation Tippecanoe)
+  1. Lecture du shapefile (EPSG:32198)
+  2. Reprojection → EPSG:4326
+  3. Détection du champ de code municipal (CO_MUNI, MUN_CODE, etc.)
+  4. Dérivation du code de région (2 premiers chiffres du code municipal)
+  5. Nettoyage et simplification des géométries
+  6. Export un GeoJSON par région : data/processed/cadastre_{id}.geojson
 
 Usage:
-    python process_cadastre.py --region mauricie
-    python process_cadastre.py --region mauricie --simplify 5 --zoom-min 12
+    python process_cadastre.py --region all
+    python process_cadastre.py --region 04
+    python process_cadastre.py --list
 """
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -26,141 +27,167 @@ except ImportError:
     print("Dépendances manquantes. Exécutez :\n  pip install -r requirements.txt", file=sys.stderr)
     sys.exit(1)
 
-RAW_DIR     = Path(__file__).parent.parent / "data" / "raw"
-PROC_DIR    = Path(__file__).parent.parent / "data" / "processed"
+RAW_DIR  = Path(__file__).parent.parent / "data" / "raw"
+PROC_DIR = Path(__file__).parent.parent / "data" / "processed"
+SHP_DIR  = RAW_DIR / "province" / "shp"
 
-# Projection source du cadastre québécois
-SRC_CRS  = "EPSG:32198"   # NAD83 / Québec Lambert
 DEST_CRS = "EPSG:4326"
+DEFAULT_SIMPLIFY_M = 3.0
 
-# Champs à conserver (les noms peuvent varier légèrement entre régions)
-KEEP_FIELDS_CANDIDATES = [
+# 17 régions administratives du Québec
+REGIONS = {
+    "01": "Bas-Saint-Laurent",
+    "02": "Saguenay-Lac-Saint-Jean",
+    "03": "Capitale-Nationale",
+    "04": "Mauricie",
+    "05": "Estrie",
+    "06": "Montreal",
+    "07": "Outaouais",
+    "08": "Abitibi-Temiscamingue",
+    "09": "Cote-Nord",
+    "10": "Nord-du-Quebec",
+    "11": "Gaspesie-Iles-de-la-Madeleine",
+    "12": "Chaudiere-Appalaches",
+    "13": "Laval",
+    "14": "Lanaudiere",
+    "15": "Laurentides",
+    "16": "Monteregie",
+    "17": "Centre-du-Quebec",
+}
+
+# Noms de champs possibles pour le code municipal
+MUNI_FIELD_CANDIDATES = ["CO_MUNI", "COMUN", "MUN_CODE", "CO_MUN", "MUNCODE", "CODMUNI"]
+# Champs à conserver dans l'output
+KEEP_CANDIDATES = [
     ["NO_LOT", "NO_CADASTRE", "SUPERFICIE"],
     ["NOLOT", "NOCADASTRE", "SUPERF"],
     ["no_lot", "no_cadastre", "superficie"],
 ]
 
-# Simplification en mètres (dans la projection source avant reprojection)
-DEFAULT_SIMPLIFY_M = 3.0
 
-
-def find_shp(region: str) -> Path:
-    shp_dir = RAW_DIR / region / "shp"
-    shps = list(shp_dir.rglob("*.shp"))
+def find_shp() -> Path:
+    shps = list(SHP_DIR.rglob("*.shp"))
     if not shps:
-        print(f"✗ Aucun shapefile trouvé dans {shp_dir}", file=sys.stderr)
-        print("  Exécutez d'abord : python download_cadastre.py --region " + region, file=sys.stderr)
+        print(f"✗ Aucun shapefile trouvé dans {SHP_DIR}", file=sys.stderr)
+        print("  Exécutez d'abord : python download_cadastre.py", file=sys.stderr)
         sys.exit(1)
-    # Préférer le fichier le plus volumineux (polygones principaux)
     return max(shps, key=lambda p: p.stat().st_size)
 
 
-def detect_fields(gdf):
-    """Retourne les noms réels des champs NO_LOT, NO_CADASTRE, SUPERFICIE."""
+def detect_muni_field(gdf) -> str:
+    cols_upper = {c.upper(): c for c in gdf.columns}
+    for candidate in MUNI_FIELD_CANDIDATES:
+        if candidate.upper() in cols_upper:
+            return cols_upper[candidate.upper()]
+    print("✗ Champ de code municipal introuvable.", file=sys.stderr)
+    print(f"  Champs disponibles : {list(gdf.columns)}", file=sys.stderr)
+    sys.exit(1)
+
+
+def detect_keep_fields(gdf) -> list:
     cols = set(gdf.columns)
-    for candidate in KEEP_FIELDS_CANDIDATES:
-        if all(c in cols for c in candidate):
-            return candidate
+    for candidates in KEEP_CANDIDATES:
+        if all(c in cols for c in candidates):
+            return candidates
     # Recherche partielle insensible à la casse
-    result = []
-    targets = ["no_lot", "no_cadastre", "superficie"]
-    for t in targets:
-        match = next((c for c in gdf.columns if c.lower().replace(" ", "_") == t), None)
-        result.append(match)
-    return result
+    targets = {"no_lot": None, "no_cadastre": None, "superficie": None}
+    for col in gdf.columns:
+        key = col.lower().replace(" ", "_")
+        if key in targets:
+            targets[key] = col
+    return [v for v in targets.values() if v]
 
 
-def process_region(region: str, simplify_m: float, zoom_min: int):
-    shp_path = find_shp(region)
-    print(f"\n→ Lecture {shp_path.name} …")
-
+def load_province(shp_path: Path):
+    size_mb = shp_path.stat().st_size / 1_048_576
+    print(f"→ Lecture {shp_path.name} ({size_mb:.0f} Mo) …")
     gdf = gpd.read_file(shp_path)
     print(f"  {len(gdf):,} lots, CRS = {gdf.crs}")
 
-    # Reprojection si nécessaire
-    if str(gdf.crs).upper() != DEST_CRS:
-        print(f"  → reprojection {gdf.crs} → {DEST_CRS} …")
+    if str(gdf.crs) != DEST_CRS:
+        print(f"  → reprojection → {DEST_CRS} …")
         gdf = gdf.to_crs(DEST_CRS)
 
-    # Détection des champs
-    fields = detect_fields(gdf)
-    real_fields = [f for f in fields if f and f in gdf.columns]
-    if real_fields:
-        print(f"  Champs retenus : {real_fields}")
-        gdf = gdf[real_fields + ["geometry"]]
+    muni_field = detect_muni_field(gdf)
+    print(f"  Champ municipal détecté : {muni_field}")
+
+    # Code région = 2 premiers chiffres du code municipal
+    gdf["_region_code"] = gdf[muni_field].astype(str).str[:2].str.zfill(2)
+
+    keep = detect_keep_fields(gdf)
+    if keep:
+        print(f"  Champs conservés : {keep}")
+        gdf = gdf[keep + ["_region_code", "geometry"]]
     else:
         print("  ⚠ Champs NO_LOT/SUPERFICIE introuvables, tous les champs conservés")
 
-    # Nettoyage des géométries invalides
-    print("  → validation des géométries …")
-    invalid = ~gdf.geometry.is_valid
+    return gdf
+
+
+def process_region(gdf, region_code: str, simplify_m: float) -> Path:
+    nom = REGIONS.get(region_code, f"Region-{region_code}")
+    subset = gdf[gdf["_region_code"] == region_code].copy()
+
+    if len(subset) == 0:
+        print(f"  ⚠ Aucun lot pour la région {region_code} ({nom}), ignorée.")
+        return None
+
+    print(f"\n→ Région {region_code} — {nom} : {len(subset):,} lots")
+
+    # Réparation des géométries invalides
+    invalid = ~subset.geometry.is_valid
     if invalid.any():
-        print(f"  ⚠ {invalid.sum():,} géométries invalides → réparation automatique")
-        gdf.loc[invalid, "geometry"] = gdf.loc[invalid, "geometry"].apply(make_valid)
+        print(f"  ⚠ {invalid.sum():,} géométries invalides → réparation …")
+        subset.loc[invalid, "geometry"] = subset.loc[invalid, "geometry"].apply(make_valid)
 
-    gdf = gdf[~gdf.geometry.is_empty & gdf.geometry.notna()]
-    print(f"  ✓ {len(gdf):,} géométries valides")
+    subset = subset[~subset.geometry.is_empty & subset.geometry.notna()]
 
-    # Simplification (en degrés, ~0.00003° ≈ 3m à cette latitude)
+    # Simplification
     tol_deg = simplify_m / 111_000
-    print(f"  → simplification {simplify_m} m (tol={tol_deg:.6f}°) …")
-    gdf["geometry"] = gdf.geometry.simplify(tol_deg, preserve_topology=True)
+    subset["geometry"] = subset.geometry.simplify(tol_deg, preserve_topology=True)
 
-    # Export GeoJSON complet
-    out_dir = PROC_DIR / region
+    # Supprimer la colonne temporaire
+    subset = subset.drop(columns=["_region_code"])
+
+    out_dir = PROC_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"cadastre_{region}.geojson"
+    out_path = out_dir / f"cadastre_{region_code}.geojson"
 
-    print(f"  → export GeoJSON → {out_path.relative_to(out_path.parent.parent.parent)} …")
-    gdf.to_file(out_path, driver="GeoJSON")
+    subset.to_file(out_path, driver="GeoJSON")
     size_mb = out_path.stat().st_size / 1_048_576
-    print(f"  ✓ {size_mb:.1f} Mo — {len(gdf):,} lots")
-
-    # Export tuiles 0.5° × 0.5° pour Tippecanoe (optionnel, zoom ≥ zoom_min)
-    if zoom_min >= 12:
-        _export_tiles(gdf, out_dir, region)
-
+    print(f"  ✓ cadastre_{region_code}.geojson — {size_mb:.1f} Mo")
     return out_path
 
 
-def _export_tiles(gdf, out_dir: Path, region: str):
-    """Découpe en tuiles de 0.5° pour accélérer Tippecanoe."""
-    import math
-    tiles_dir = out_dir / "tiles"
-    tiles_dir.mkdir(exist_ok=True)
-
-    bounds = gdf.total_bounds  # minx, miny, maxx, maxy
-    step = 0.5
-    xs = [bounds[0] + i * step for i in range(math.ceil((bounds[2] - bounds[0]) / step) + 1)]
-    ys = [bounds[1] + i * step for i in range(math.ceil((bounds[3] - bounds[1]) / step) + 1)]
-
-    count = 0
-    print(f"  → découpage en tuiles 0.5° ({len(xs)*len(ys)} cellules max) …")
-    for x0 in xs:
-        for y0 in ys:
-            x1, y1 = x0 + step, y0 + step
-            tile = gdf.cx[x0:x1, y0:y1]
-            if len(tile) == 0:
-                continue
-            name = f"tile_{x0:.1f}_{y0:.1f}.geojson".replace("-", "m")
-            tile.to_file(tiles_dir / name, driver="GeoJSON")
-            count += 1
-    print(f"  ✓ {count} tuiles exportées dans {tiles_dir.relative_to(out_dir.parent.parent)}")
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Prépare les shapefiles du cadastre pour Tippecanoe")
-    parser.add_argument("--region", required=True, metavar="NOM",
-                        help="Région à traiter (ex: mauricie)")
+    parser = argparse.ArgumentParser(description="Prépare les GeoJSON du cadastre par région")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--region", metavar="CODE_OU_ALL",
+                       help="Code région (ex: 04) ou 'all' pour les 17 régions")
+    group.add_argument("--list", action="store_true", help="Liste les 17 régions")
     parser.add_argument("--simplify", type=float, default=DEFAULT_SIMPLIFY_M, metavar="M",
-                        help=f"Tolérance de simplification en mètres (défaut: {DEFAULT_SIMPLIFY_M})")
-    parser.add_argument("--zoom-min", type=int, default=12, metavar="Z",
-                        help="Zoom minimum visé (influence le découpage en tuiles, défaut: 12)")
+                        help=f"Tolérance simplification en mètres (défaut: {DEFAULT_SIMPLIFY_M})")
     args = parser.parse_args()
 
-    out = process_region(args.region, args.simplify, args.zoom_min)
-    print(f"\n✓ Traitement terminé → {out}")
-    print("  Prochaine étape : python generate_pmtiles.py --region " + args.region)
+    if args.list:
+        print("\nRégions administratives du Québec :\n")
+        for code, nom in REGIONS.items():
+            out = PROC_DIR / f"cadastre_{code}.geojson"
+            status = "✓" if out.exists() else " "
+            print(f"  [{status}] {code}  {nom}")
+        print()
+        return
+
+    shp = find_shp()
+    gdf = load_province(shp)
+
+    targets = list(REGIONS.keys()) if args.region == "all" else [args.region.zfill(2)]
+
+    for code in tqdm(targets, desc="Régions", unit="région"):
+        process_region(gdf, code, args.simplify)
+
+    print(f"\n✓ Terminé. GeoJSON dans : {PROC_DIR}")
+    print("  Prochaine étape : python generate_pmtiles.py --region all")
 
 
 if __name__ == "__main__":
