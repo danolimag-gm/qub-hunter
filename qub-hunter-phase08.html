@@ -1625,28 +1625,26 @@
         flex: 1;
       }
 
-      .geo-fab {
-        left: 394px;
-        bottom: 30px;
+      /* Transitions fluides sur tous les éléments flottants */
+      .geo-fab, .wp-fab, .legend, .loading-badge, .compass-readout {
+        transition: left 0.3s ease;
       }
 
-      .wp-fab {
-        left: 394px;
-        bottom: 90px;
-      }
+      /* Positions par défaut desktop (panel fermé) */
+      .geo-fab   { left: 14px; bottom: 30px; }
+      .wp-fab    { left: 14px; bottom: 90px; }
+      .legend    { left: 14px; bottom: 30px; }
+      .loading-badge { left: 0px; }
+      .compass-readout { left: 14px; bottom: 80px; }
+      .search-overlay { left: 0; }
 
-      .legend {
-        bottom: 30px;
-        left: 394px;
-      }
-
-      .loading-badge {
-        left: 394px;
-      }
-
-      .search-overlay {
-        left: 380px;
-      }
+      /* Panel ouvert → décaler à droite du sidebar */
+      body.sidebar-open .geo-fab        { left: 394px; }
+      body.sidebar-open .wp-fab         { left: 394px; }
+      body.sidebar-open .legend         { left: 394px; }
+      body.sidebar-open .loading-badge  { left: 394px; }
+      body.sidebar-open .compass-readout{ left: 394px; }
+      body.sidebar-open .search-overlay { left: 380px; }
 
       .panel-toggle-desktop {
         position: absolute;
@@ -4256,18 +4254,21 @@
         var isDesktop = window.innerWidth >= 900;
         if (isDesktop) {
           panel.classList.toggle('collapsed', !open);
+          document.body.classList.toggle('sidebar-open', open);
         } else {
           panel.classList.toggle('open', open);
         }
         panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
         panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
-        // Hide compass-readout when panel is open on mobile
         var compassReadout = $('compass');
         if (compassReadout) {
           compassReadout.style.display = open && !isDesktop ? 'none' : '';
         }
         if (open) updateOfflinePanel();
       }
+
+      // Ouvrir le sidebar par défaut sur desktop
+      if (window.innerWidth >= 900) { setPanelOpen(true); }
 
       var dragStartY = null;
       panelHandle.addEventListener('touchstart', function (e) { dragStartY = e.touches[0].clientY; }, { passive: true });
