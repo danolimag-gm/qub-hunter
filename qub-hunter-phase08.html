@@ -2087,6 +2087,18 @@
     </div>
     <div class="panel-content">
 
+      <!-- FOND DE CARTE -->
+      <div class="layer-section">
+        <div class="section-label">Fond de carte</div>
+        <div class="layer-row">
+          <div class="layer-info">
+            <div class="layer-name">Source actuelle</div>
+            <div class="layer-desc" id="curSource">—</div>
+          </div>
+          <button class="source-btn" id="switchSource">Changer</button>
+        </div>
+      </div>
+
       <!-- MES REPÈRES -->
       <div class="layer-section">
         <div class="section-label">Mes repères</div>
@@ -2100,29 +2112,7 @@
         </div>
       </div>
 
-      <!-- CARNET DE CHASSE -->
-      <div class="layer-section">
-        <div class="section-label">Carnet de chasse</div>
-        <div id="huntLogList">
-          <div class="wp-empty">Aucune entrée.<br>Enregistrez vos prises ici.</div>
-        </div>
-        <div class="wp-footer">
-          <button class="wp-footer-btn export" id="addHuntLogBtn">+ Ajouter</button>
-          <button class="wp-footer-btn clear" id="clearHuntLogBtn">✕ Tout</button>
-        </div>
-      </div>
-
-      <div class="layer-section">
-        <div class="section-label">Fond de carte</div>
-        <div class="layer-row">
-          <div class="layer-info">
-            <div class="layer-name">Source actuelle</div>
-            <div class="layer-desc" id="curSource">—</div>
-          </div>
-          <button class="source-btn" id="switchSource">Changer</button>
-        </div>
-      </div>
-
+      <!-- ZONES DE CHASSE -->
       <div class="layer-section">
         <div class="section-label">Zones de chasse</div>
         <div class="layer-row">
@@ -2138,76 +2128,6 @@
           style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:4px 0 0">
           Pour les vraies zones MRNF :<br>
           <code style="color:var(--moss)">python pipeline/download_zones.py</code>
-        </div>
-      </div>
-
-      <div class="layer-section">
-        <div class="section-label">Territoires fauniques</div>
-        <div class="layer-row">
-          <div class="layer-swatch" style="background:#7a8a3e"></div>
-          <div class="layer-info">
-            <div class="layer-name">ZEC</div>
-            <div class="layer-desc" id="desc-zec">chargement…</div>
-          </div>
-          <label class="toggle"><input type="checkbox" data-layer="zec"><span class="toggle-slider"></span></label>
-        </div>
-        <div class="layer-row">
-          <div class="layer-swatch" style="background:#a04a28"></div>
-          <div class="layer-info">
-            <div class="layer-name">Pourvoiries (DE)</div>
-            <div class="layer-desc" id="desc-pourvoirie">chargement…</div>
-          </div>
-          <label class="toggle"><input type="checkbox" data-layer="pourvoirie"><span
-              class="toggle-slider"></span></label>
-        </div>
-        <div class="layer-row">
-          <div class="layer-swatch" style="background:#3d5234"></div>
-          <div class="layer-info">
-            <div class="layer-name">Réserves fauniques</div>
-            <div class="layer-desc" id="desc-reserve">chargement…</div>
-          </div>
-          <label class="toggle"><input type="checkbox" data-layer="reserve"><span class="toggle-slider"></span></label>
-        </div>
-        <div class="layer-row">
-          <div class="layer-swatch" style="background:#b88a3e"></div>
-          <div class="layer-info">
-            <div class="layer-name">Parcs nationaux</div>
-            <div class="layer-desc" id="desc-parc">chargement…</div>
-          </div>
-          <label class="toggle"><input type="checkbox" data-layer="parc"><span class="toggle-slider"></span></label>
-        </div>
-      </div>
-
-      <div class="layer-section">
-        <div class="section-label">Cadastre</div>
-        <div class="layer-row">
-          <div class="layer-swatch" style="background:transparent;border:1px solid var(--line)"></div>
-          <div class="layer-info">
-            <div class="layer-name">Lots cadastraux</div>
-            <div class="layer-desc" id="desc-cadastre">disponible zoom ≥ 12</div>
-          </div>
-          <label class="toggle"><input type="checkbox" data-layer="cadastre"><span class="toggle-slider"></span></label>
-        </div>
-        <div style="padding:6px 0 0">
-          <select id="region-select" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--paper-warm);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 6px;cursor:pointer">
-            <option value="01">01 — Bas-Saint-Laurent</option>
-            <option value="02">02 — Saguenay–Lac-Saint-Jean</option>
-            <option value="03">03 — Capitale-Nationale</option>
-            <option value="04" selected>04 — Mauricie</option>
-            <option value="05">05 — Estrie</option>
-            <option value="06">06 — Montréal</option>
-            <option value="07">07 — Outaouais</option>
-            <option value="08">08 — Abitibi-Témiscamingue</option>
-            <option value="09">09 — Côte-Nord</option>
-            <option value="10">10 — Nord-du-Québec</option>
-            <option value="11">11 — Gaspésie–Îles-de-la-Madeleine</option>
-            <option value="12">12 — Chaudière-Appalaches</option>
-            <option value="13">13 — Laval</option>
-            <option value="14">14 — Lanaudière</option>
-            <option value="15">15 — Laurentides</option>
-            <option value="16">16 — Montérégie</option>
-            <option value="17">17 — Centre-du-Québec</option>
-          </select>
         </div>
       </div>
 
@@ -2245,6 +2165,44 @@
           </div>
           <label class="toggle"><input type="checkbox" data-layer="moose-habit" disabled><span
               class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- TERRITOIRES FAUNIQUES -->
+      <div class="layer-section">
+        <div class="section-label">Territoires fauniques</div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#7a8a3e"></div>
+          <div class="layer-info">
+            <div class="layer-name">ZEC</div>
+            <div class="layer-desc" id="desc-zec">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="zec"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#a04a28"></div>
+          <div class="layer-info">
+            <div class="layer-name">Pourvoiries (DE)</div>
+            <div class="layer-desc" id="desc-pourvoirie">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="pourvoirie"><span
+              class="toggle-slider"></span></label>
+        </div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#3d5234"></div>
+          <div class="layer-info">
+            <div class="layer-name">Réserves fauniques</div>
+            <div class="layer-desc" id="desc-reserve">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="reserve"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:#b88a3e"></div>
+          <div class="layer-info">
+            <div class="layer-name">Parcs nationaux</div>
+            <div class="layer-desc" id="desc-parc">chargement…</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="parc"><span class="toggle-slider"></span></label>
         </div>
       </div>
 
@@ -2318,6 +2276,40 @@
         </div>
       </div>
 
+      <!-- CADASTRE -->
+      <div class="layer-section">
+        <div class="section-label">Cadastre</div>
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:transparent;border:1px solid var(--line)"></div>
+          <div class="layer-info">
+            <div class="layer-name">Lots cadastraux</div>
+            <div class="layer-desc" id="desc-cadastre">disponible zoom ≥ 12</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="cadastre"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="padding:6px 0 0">
+          <select id="region-select" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--paper-warm);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 6px;cursor:pointer">
+            <option value="01">01 — Bas-Saint-Laurent</option>
+            <option value="02">02 — Saguenay–Lac-Saint-Jean</option>
+            <option value="03">03 — Capitale-Nationale</option>
+            <option value="04" selected>04 — Mauricie</option>
+            <option value="05">05 — Estrie</option>
+            <option value="06">06 — Montréal</option>
+            <option value="07">07 — Outaouais</option>
+            <option value="08">08 — Abitibi-Témiscamingue</option>
+            <option value="09">09 — Côte-Nord</option>
+            <option value="10">10 — Nord-du-Québec</option>
+            <option value="11">11 — Gaspésie–Îles-de-la-Madeleine</option>
+            <option value="12">12 — Chaudière-Appalaches</option>
+            <option value="13">13 — Laval</option>
+            <option value="14">14 — Lanaudière</option>
+            <option value="15">15 — Laurentides</option>
+            <option value="16">16 — Montérégie</option>
+            <option value="17">17 — Centre-du-Québec</option>
+          </select>
+        </div>
+      </div>
+
       <!-- TERRITOIRES AUTOCHTONES -->
       <div class="layer-section">
         <div class="section-label">Territoires autochtones</div>
@@ -2339,6 +2331,19 @@
         </div>
       </div>
 
+      <!-- CARNET DE CHASSE -->
+      <div class="layer-section">
+        <div class="section-label">Carnet de chasse</div>
+        <div id="huntLogList">
+          <div class="wp-empty">Aucune entrée.<br>Enregistrez vos prises ici.</div>
+        </div>
+        <div class="wp-footer">
+          <button class="wp-footer-btn export" id="addHuntLogBtn">+ Ajouter</button>
+          <button class="wp-footer-btn clear" id="clearHuntLogBtn">✕ Tout</button>
+        </div>
+      </div>
+
+      <!-- DONNÉES HORS-LIGNE -->
       <div class="layer-section">
         <div class="section-label">Données hors-ligne</div>
         <div id="offlineRows">
@@ -2369,16 +2374,15 @@
         </div>
       </div>
 
+      <!-- SOURCE DES DONNÉES -->
       <div class="layer-section">
         <div class="section-label">Source des données</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark);line-height:1.7">
-          MRNF — TRQ (ArcGIS REST)<br>
-          Saisons 2025 : règlement MRNF 2024-2026<br>
-          Territoires autochtones : polygones indicatifs<br>
-          Règlement officiel : <a href="https://www.mrnf.gouv.qc.ca/faune/chasse/" target="_blank" rel="noopener"
-            style="color:var(--zone-blue)">mrnf.gouv.qc.ca</a><br>
-          <a href="https://cdn-contenu.quebec.ca/cdn-contenu/chasse/Documents/regles-chasse-2024-2026.pdf"
-            target="_blank" rel="noopener" style="color:var(--zone-blue)">Règlement PDF 2024-2026 →</a>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);line-height:1.9">
+          <div>MRNF – TRQ (ArcGIS REST)</div>
+          <div>Saisons 2025 : règlement MRNF 2024-2026</div>
+          <div>Territoires autochtones : polygones indicatifs</div>
+          <div style="margin-top:6px">Règlement officiel : <a href="https://mrnf.gouv.qc.ca" target="_blank" rel="noopener" style="color:var(--zone-blue);text-decoration:underline">mrnf.gouv.qc.ca</a></div>
+          <div><a href="https://mrnf.gouv.qc.ca/documents/faune/chasse/reglements/Reglement-chasse-2024-2026.pdf" target="_blank" rel="noopener" style="color:var(--zone-blue);text-decoration:underline">Règlement PDF 2024-2026 →</a></div>
         </div>
       </div>
 
