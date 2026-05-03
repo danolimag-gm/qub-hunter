@@ -4464,8 +4464,24 @@
             };
           }
 
-          // 3. Fallback: lot sans localisation
-          return lotCardOnly(lotNo);
+          // 3. Fallback: API ArcGIS cadastre (requête par NO_LOT)
+          var arcgisUrl = 'https://geo.environnement.gouv.qc.ca/donnees/rest/services/Reference/Cadastre_allege/MapServer/0/query';
+          var params = 'where=' + encodeURIComponent("NO_LOT LIKE '%" + lotNo.replace(/\s/g,'') + "%' OR NO_LOT LIKE '%" + lotNo + "%'") +
+            '&outFields=NO_LOT&outSR=4326&returnGeometry=true&resultRecordCount=1&f=geojson';
+          return fetch(arcgisUrl + '?' + params)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              var f = data && data.features && data.features[0];
+              if (!f || !f.geometry) return lotCardOnly(lotNo);
+              var coords = f.geometry.coordinates;
+              var ring = f.geometry.type === 'Polygon' ? coords[0] : coords[0][0];
+              var lon = ring.reduce(function(s,c){return s+c[0];},0)/ring.length;
+              var lat = ring.reduce(function(s,c){return s+c[1];},0)/ring.length;
+              return { isCadastre: true, noLocation: false, name: f.properties.NO_LOT || lotNo,
+                type: 'cadastre', lotNo: f.properties.NO_LOT || lotNo,
+                muni: null, mrc: null, lat: lat, lng: lon, source: 'arcgis' };
+            })
+            .catch(function() { return lotCardOnly(lotNo); });
         }).catch(function () { return lotCardOnly(lotNo); });
       }
 
@@ -4485,10 +4501,12 @@
         var coordResult = tryCoordinateSearch(query);
         if (coordResult) { showSearchResults(coordResult); return; }
 
-        // 2. Numéro(s) de lot cadastral : 6-8 chiffres, séparés par virgule/point-virgule/espace
-        //    Exemples : "5778374"   "5778374,5854526"   "5778374 5854526"
+        // 2. Numéro(s) de lot cadastral : 6-8 chiffres (avec ou sans espaces)
+        //    Exemples : "5778374"   "6 020 038"   "5778374,5854526"
         if (/^[\d\s,;]+$/.test(query)) {
-          var lots = query.match(/\d{6,8}/g);
+          // Normaliser : retirer les espaces groupés (ex: "6 020 038" → "6020038")
+          var queryNorm = query.replace(/\s+/g, '');
+          var lots = queryNorm.match(/\d{6,8}/g) || query.match(/\d{6,8}/g);
           if (lots && lots.length) {
             searchByLotNumbers(lots);
             return;
