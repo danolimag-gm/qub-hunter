@@ -2220,20 +2220,6 @@
           <label class="toggle"><input type="checkbox" id="toggle300m"><span class="toggle-slider"></span></label>
         </div>
 
-        <!-- Outil cercle 300m personnalisé -->
-        <div class="layer-row">
-          <div class="layer-swatch" style="background:rgba(42,92,138,0.2);border:2px dashed #2a5c8a"></div>
-          <div class="layer-info">
-            <div class="layer-name">Ajouter cercle 300 m</div>
-            <div class="layer-desc">Cliquez sur la carte pour placer</div>
-          </div>
-          <label class="toggle"><input type="checkbox" id="toggleCircleTool"><span class="toggle-slider"></span></label>
-        </div>
-        <div style="padding:4px 0 0">
-          <button id="clearCirclesBtn"
-            style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 8px;background:var(--bark-light);color:#fff;border:none;border-radius:4px;cursor:pointer">Effacer
-            tous les cercles</button>
-        </div>
         <div class="zone300-note">
           ⚖ Loi provinciale : armes à feu interdites à moins de <strong>300 m</strong> de toute résidence ou bâtiment
           occupé (L.R.Q., c. C-61.1, art. 69). Activez la géolocalisation 📍 pour afficher le cercle.
@@ -4286,21 +4272,6 @@
       var t300 = $('toggle300m');
       if (t300) t300.addEventListener('change', function () { toggle300m(this.checked); });
 
-      // ── TOGGLE CIRCLE TOOL (custom 300m circles) ─────────────────────────────────
-      var circleToolToggle = $('toggleCircleTool');
-      if (circleToolToggle) circleToolToggle.addEventListener('change', function () { toggleCircleTool(this.checked); });
-
-      // ── MAP CLICK HANDLER (for placing custom circles) ─────────────────────────
-      map.on('click', function (e) {
-        if (circleToolActive) {
-          addCustom300mCircle(e.lngLat.lat, e.lngLat.lng);
-          // Keep tool active for multiple circles
-        }
-      });
-
-      // ── CLEAR CUSTOM CIRCLES BUTTON ─────────────────────────────────────────────
-      var clearCirclesBtn = $('clearCirclesBtn');
-      if (clearCirclesBtn) clearCirclesBtn.addEventListener('click', function () { clearCustom300mCircles(); });
 
       // ── RECHERCHE ─────────────────────────────────────────────────────────────
       var searchOverlay = $('searchOverlay'), searchInput = $('searchInput'), searchResults = $('searchResults');
