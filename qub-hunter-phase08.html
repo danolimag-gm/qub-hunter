@@ -439,6 +439,10 @@
       top: 0;
       background: var(--paper);
       z-index: 1;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .panel-title {
@@ -2070,9 +2074,9 @@
   </div>
 
   <!-- PANEL -->
-  <aside class="panel collapsed" id="panel">
+  <aside class="panel" id="panel">
     <div class="panel-handle" id="panelHandle"></div>
-    <div class="panel-summary">
+    <div class="panel-summary" id="panelSummary">
       <div>
         <div class="panel-title">Couches du territoire</div>
         <div class="panel-meta" id="panelMeta">Glissez pour ouvrir</div>
@@ -4501,7 +4505,10 @@
       }, { passive: true });
       panelHandle.addEventListener('touchend', function () { dragStartY = null; });
       panelHandle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
-      panelToggle.addEventListener('click', function () { setPanelOpen(!panel.classList.contains('open')); });
+      $('panelSummary').addEventListener('click', function (e) {
+        e.stopPropagation();
+        setPanelOpen(!panel.classList.contains('open'));
+      });
 
 
       // ── TOGGLES COUCHES ───────────────────────────────────────────────────────
