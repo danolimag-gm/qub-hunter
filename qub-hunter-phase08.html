@@ -3788,6 +3788,7 @@
 
       // ── TERRITOIRES AUTOCHTONES ──────────────────────────────────────────────
       function loadIndigenousLayer() {
+        if (map.getSource('src-autochtone')) return;
         map.addSource('src-autochtone', { type: 'geojson', data: TERRITORIES_AUTOCHTONES });
 
         // Check checkbox state before adding indigenous territories layers
