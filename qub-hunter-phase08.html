@@ -4247,12 +4247,11 @@
       function updateCompass() {
         if (!map) return;
         var c = map.getCenter();
-        $('lat').textContent = c.lat.toFixed(4) + '°';
-        $('lon').textContent = c.lng.toFixed(4) + '°';
-        $('zm').textContent = map.getZoom().toFixed(1);
-        $('crLat').textContent = c.lat.toFixed(5) + '°';
-        $('crLon').textContent = c.lng.toFixed(5) + '°';
-        $('crZm').textContent = map.getZoom().toFixed(1);
+        var z = map.getZoom().toFixed(1);
+        var crLat = $('crLat'), crLon = $('crLon'), crZm = $('crZm');
+        if (crLat) crLat.textContent = c.lat.toFixed(5) + '°';
+        if (crLon) crLon.textContent = c.lng.toFixed(5) + '°';
+        if (crZm) crZm.textContent = z;
       }
       map.on('move', updateCompass);
 
