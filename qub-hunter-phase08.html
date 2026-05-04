@@ -2374,6 +2374,19 @@
         </div>
       </div>
 
+      <!-- SAUVEGARDE -->
+      <div class="layer-section">
+        <div class="section-label">Sauvegarde</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.65;padding-bottom:8px">
+          Sauvegarde locale de tous vos repères et entrées du carnet. Téléchargez le fichier puis enregistrez-le dans iCloud Drive ou Google Drive depuis votre appareil.
+        </div>
+        <div class="wp-footer">
+          <button class="wp-footer-btn export" id="backupDownloadBtn">↓ Télécharger</button>
+          <button class="wp-footer-btn export" id="backupRestoreBtn">↑ Restaurer</button>
+        </div>
+        <input type="file" id="backupRestoreInput" accept="application/json,.json" style="display:none">
+      </div>
+
       <!-- SOURCE DES DONNÉES -->
       <div class="layer-section">
         <div class="section-label">Source des données</div>
@@ -3237,6 +3250,78 @@
         saveHuntLog();
         renderHuntLogList();
         showToast('Carnet vidé');
+      });
+
+      // ── BACKUP / RESTORE ─────────────────────────────────────────────────────
+      $('backupDownloadBtn').addEventListener('click', function () {
+        var data = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          waypoints: waypoints,
+          huntLog: huntLog
+        };
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var stamp = new Date().toISOString().slice(0, 10);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'qub-hunter-backup-' + stamp + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        showToast('Sauvegarde téléchargée (' + waypoints.length + ' repères, ' + huntLog.length + ' prises)');
+      });
+
+      $('backupRestoreBtn').addEventListener('click', function () { $('backupRestoreInput').click(); });
+
+      $('backupRestoreInput').addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+          var data;
+          try { data = JSON.parse(ev.target.result); }
+          catch (err) { alert('Fichier invalide : JSON illisible'); return; }
+          if (!data || (!Array.isArray(data.waypoints) && !Array.isArray(data.huntLog))) {
+            alert('Fichier invalide : ne contient ni repères ni carnet'); return;
+          }
+          var newWp = Array.isArray(data.waypoints) ? data.waypoints : [];
+          var newHl = Array.isArray(data.huntLog) ? data.huntLog : [];
+          if (!confirm('Fusionner ' + newWp.length + ' repères et ' + newHl.length + ' prises avec vos données actuelles ?\n\n(Les doublons par ID seront ignorés.)')) {
+            $('backupRestoreInput').value = '';
+            return;
+          }
+          var existingWpIds = {};
+          waypoints.forEach(function (w) { existingWpIds[w.id] = true; });
+          var addedWp = 0;
+          newWp.forEach(function (w) {
+            if (!w.id || existingWpIds[w.id]) return;
+            waypoints.push(w);
+            existingWpIds[w.id] = true;
+            if (w.cat !== 'cercle300m') addWaypointToMap(w);
+            addedWp++;
+          });
+          var existingHlSig = {};
+          huntLog.forEach(function (h) { existingHlSig[(h.species || '') + '|' + (h.date || '') + '|' + (h.lat || '') + '|' + (h.lon || '')] = true; });
+          var addedHl = 0;
+          newHl.forEach(function (h) {
+            var sig = (h.species || '') + '|' + (h.date || '') + '|' + (h.lat || '') + '|' + (h.lon || '');
+            if (existingHlSig[sig]) return;
+            huntLog.push(h);
+            existingHlSig[sig] = true;
+            addedHl++;
+          });
+          saveWaypoints();
+          saveHuntLog();
+          renderCustom300mCircles();
+          renderWaypointList();
+          renderHuntLogList();
+          $('backupRestoreInput').value = '';
+          showToast('Restauré : +' + addedWp + ' repères, +' + addedHl + ' prises');
+        };
+        reader.onerror = function () { alert('Erreur de lecture du fichier'); };
+        reader.readAsText(file);
       });
 
       // ── CARNET MODAL ────────────────────────────────────────────────────────
