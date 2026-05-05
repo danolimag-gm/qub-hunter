@@ -3980,6 +3980,7 @@
 
       function loadForestTypesLayer() {
         if (!pmtilesAvailable) return;
+        if (map.getSource('src-forest-types')) return;
         var checkbox = document.querySelector('input[data-layer="forest-types"]');
         var isVisible = checkbox ? checkbox.checked : false;
         var descEl = $('desc-forest-types');
@@ -4081,6 +4082,35 @@
                 },
                 layout: { 'visibility': hVis ? 'visible' : 'none' }
               });
+            });
+
+            var HABITAT_LABELS = {
+              orignal: { name: 'Orignal', emoji: '🫎', note: 'Forêt mixte/résineuse dense — couvert d\'abri hivernal' },
+              cerf: { name: 'Cerf de Virginie', emoji: '🦌', note: 'Résineux mature — ravage potentiel (couvert thermique)' },
+              ours: { name: 'Ours noir', emoji: '🐻', note: 'Forêt feuillue/mixte mature — baies et glands abondants' },
+              caribou: { name: 'Caribou forestier', emoji: '🦌', note: 'Résineux ancien non perturbé — lichens arboricoles' },
+              dindon: { name: 'Dindon sauvage', emoji: '🦃', note: 'Forêt feuillue/mixte mature — noix et insectes au sol' }
+            };
+            HABITATS.forEach(function (h) {
+              map.on('click', 'fill-habitat-' + h.key, function (e) {
+                var f = e.features && e.features[0]; if (!f) return;
+                var p = f.properties || {};
+                var info = HABITAT_LABELS[h.key];
+                var html = '<div class="popup-type">Habitat potentiel ' + info.emoji + '</div>' +
+                  '<div class="popup-title">' + info.name + '</div>' +
+                  '<div class="popup-body" style="font-size:11px;line-height:1.7">' +
+                  (p.gr_ess ? '<b>Essences&nbsp;:</b> ' + p.gr_ess + '<br>' : '') +
+                  (p.cl_age ? '<b>Âge&nbsp;:</b> ' + p.cl_age + '<br>' : '') +
+                  (p.cl_haut ? '<b>Hauteur&nbsp;:</b> ' + p.cl_haut + '<br>' : '') +
+                  (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + p.type_eco + '<br>' : '') +
+                  (p.origine ? '<b>Origine&nbsp;:</b> ' + p.origine + '<br>' : '') +
+                  '<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1);font-style:italic;color:#555">' +
+                  info.note + '</div></div>';
+                new maplibregl.Popup({ offset: 10, closeButton: true })
+                  .setLngLat(e.lngLat).setHTML(html).addTo(map);
+              });
+              map.on('mouseenter', 'fill-habitat-' + h.key, function () { map.getCanvas().style.cursor = 'pointer'; });
+              map.on('mouseleave', 'fill-habitat-' + h.key, function () { map.getCanvas().style.cursor = ''; });
             });
 
             map.on('click', 'fill-forest-types', function (e) {
