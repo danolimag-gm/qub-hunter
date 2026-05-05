@@ -4234,7 +4234,8 @@
 
             if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 8)';
           })
-          .catch(function () {
+          .catch(function (err) {
+            console.error('[forest-types] Erreur:', err && err.message || err);
             if (descEl) descEl.textContent = 'PMTiles non disponible — uploadez vers R2';
           });
       }
