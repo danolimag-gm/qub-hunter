@@ -4091,6 +4091,13 @@
               });
             });
 
+            var _ecoPopup = null;
+            function showEcoPopup(lngLat, html) {
+              if (_ecoPopup) _ecoPopup.remove();
+              _ecoPopup = new maplibregl.Popup({ offset: 10, closeButton: true })
+                .setLngLat(lngLat).setHTML(html).addTo(map);
+            }
+
             var HABITAT_LABELS = {
               orignal: { name: 'Orignal', emoji: '🫎', note: 'Forêt mixte/résineuse dense — couvert d\'abri hivernal' },
               cerf: { name: 'Cerf de Virginie', emoji: '🦌', note: 'Résineux mature — ravage potentiel (couvert thermique)' },
@@ -4113,8 +4120,7 @@
                   (p.origine ? '<b>Origine&nbsp;:</b> ' + p.origine + '<br>' : '') +
                   '<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1);font-style:italic;color:#555">' +
                   info.note + '</div></div>';
-                new maplibregl.Popup({ offset: 10, closeButton: true })
-                  .setLngLat(e.lngLat).setHTML(html).addTo(map);
+                showEcoPopup(e.lngLat, html);
               });
               map.on('mouseenter', 'fill-habitat-' + h.key, function () { map.getCanvas().style.cursor = 'pointer'; });
               map.on('mouseleave', 'fill-habitat-' + h.key, function () { map.getCanvas().style.cursor = ''; });
@@ -4133,8 +4139,7 @@
                 (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + p.type_eco + '<br>' : '') +
                 (p.origine ? '<b>Origine&nbsp;:</b> ' + p.origine : '') +
                 '</div>';
-              new maplibregl.Popup({ offset: 10, closeButton: true })
-                .setLngLat(e.lngLat).setHTML(html).addTo(map);
+              showEcoPopup(e.lngLat, html);
             });
             map.on('mouseenter', 'fill-forest-types', function () { map.getCanvas().style.cursor = 'pointer'; });
             map.on('mouseleave', 'fill-forest-types', function () { map.getCanvas().style.cursor = ''; });
