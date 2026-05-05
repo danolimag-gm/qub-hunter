@@ -3703,7 +3703,7 @@
             if (!r.ok) throw new Error('absent');
             map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
             map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6, 'symbol-placement': 'point', 'text-anchor': 'center' }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
             map.on('click', 'line-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
@@ -3746,9 +3746,16 @@
         map.addLayer({
           id: 'label-cadastre', type: 'symbol', source: sourceId,
           minzoom: 14,
-          layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 },
-          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 },
-          layout: { 'visibility': isVisible ? 'visible' : 'none' }
+          layout: {
+            'text-field': ['get', 'NO_LOT'],
+            'text-font': ['literal', ['Open Sans Regular']],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11],
+            'text-max-width': 6,
+            'symbol-placement': 'point',
+            'text-anchor': 'center',
+            'visibility': isVisible ? 'visible' : 'none'
+          },
+          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }
         });
 
         // ── SURBRILLANCE POLYGONE LOT ───────────────────────────────────────────
@@ -3891,7 +3898,7 @@
 
             map.addLayer({ id: 'fill-cadastre', type: 'fill', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'fill-color': '#8a7a5a', 'fill-opacity': 0 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
             map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6 }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
+            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6, 'symbol-placement': 'point', 'text-anchor': 'center', 'visibility': isVisible ? 'visible' : 'none' }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
             map.on('click', 'fill-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div>';
