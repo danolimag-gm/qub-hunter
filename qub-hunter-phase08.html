@@ -4058,39 +4058,43 @@
 
       // ── SENTIERS ─────────────────────────────────────────────────────────────
       function loadTrailsLayer() {
+        if (!pmtilesAvailable) return;
+        if (map.getSource('src-trails')) return;
         var checkbox = document.querySelector('input[data-layer="trails"]');
         var isVisible = checkbox ? checkbox.checked : false;
         var descEl = $('desc-trails');
+        var TRAILS_PMTILES = R2_BASE + '/trails/trails_quebec.pmtiles';
 
-        var dataFile = './data/trails_quebec.geojson';
-
-        fetch(dataFile)
-          .then(function (res) { return res.json(); })
-          .then(function (data) {
-            map.addSource('src-trails', { type: 'geojson', data: data });
+        fetch(TRAILS_PMTILES, { method: 'HEAD' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('absent');
+            map.addSource('src-trails', {
+              type: 'vector',
+              url: 'pmtiles://' + TRAILS_PMTILES,
+              minzoom: 8,
+              maxzoom: 14
+            });
             map.addLayer({
               id: 'line-trails',
               type: 'line',
               source: 'src-trails',
+              'source-layer': 'trails',
               paint: {
                 'line-color': ['match', ['get', 'type'],
-                  'hiking', '#2d5016',
+                  'pedestrian', '#2d5016',
                   'snowmobile', '#2a5c8a',
                   'atv', '#a04a28',
-                  'bicycle', '#b88a3e',
-                  'horse', '#8b4513',
-                  'ski', '#4682b4',
                   '#666666'
                 ],
-                'line-width': 2,
-                'line-opacity': 0.8
+                'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 14, 2.4],
+                'line-opacity': 0.85
               },
               layout: { 'visibility': isVisible ? 'visible' : 'none' }
             });
-            if (descEl) descEl.textContent = data.features.length + ' sentiers (OSM)';
+            if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 8)';
           })
           .catch(function () {
-            if (descEl) descEl.innerHTML = 'Fichier requis: <code style="color:var(--moss)">./data/trails_quebec.geojson</code>';
+            if (descEl) descEl.textContent = 'PMTiles non disponible — uploadez vers R2';
           });
       }
 
@@ -4325,7 +4329,8 @@
       });
 
       map.on('styledata', function () { if (!map.getSource('src-zec')) { loadAllLayers(); renderCustom300mCircles(); renderPreview300m(); }
-        else if (!map.getSource('src-forest-types')) { loadForestTypesLayer(); } });
+        else if (!map.getSource('src-forest-types')) { loadForestTypesLayer(); }
+        else if (!map.getSource('src-trails')) { loadTrailsLayer(); } });
       map.on('move', renderPreview300m);
 
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
