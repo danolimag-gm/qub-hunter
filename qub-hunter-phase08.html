@@ -4078,14 +4078,14 @@
       function loadForestTypesLayer() {
         if (!pmtilesAvailable) return;
         if (map.getSource('src-forest-types')) return;
-        var checkbox = document.querySelector('input[data-layer="forest-types"]');
-        var isVisible = checkbox ? checkbox.checked : false;
         var descEl = $('desc-forest-types');
 
         fetch(FOREST_TYPES_PMTILES, { method: 'HEAD' })
           .then(function (r) {
             if (!r.ok) throw new Error('absent');
             if (map.getSource('src-forest-types')) { if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 8)'; return; }
+            var checkbox = document.querySelector('input[data-layer="forest-types"]');
+            var isVisible = checkbox ? checkbox.checked : false;
             map.addSource('src-forest-types', {
               type: 'vector',
               url: 'pmtiles://' + FOREST_TYPES_PMTILES,
@@ -4320,8 +4320,6 @@
       function loadTrailsLayer() {
         if (!pmtilesAvailable) return;
         if (map.getSource('src-trails')) return;
-        var checkbox = document.querySelector('input[data-layer="trails"]');
-        var isVisible = checkbox ? checkbox.checked : false;
         var descEl = $('desc-trails');
         var TRAILS_PMTILES = R2_BASE + '/trails/trails_quebec.pmtiles';
 
@@ -4329,6 +4327,8 @@
           .then(function (r) {
             if (!r.ok) throw new Error('absent');
             if (map.getSource('src-trails')) return;
+            var checkbox = document.querySelector('input[data-layer="trails"]');
+            var isVisible = checkbox ? checkbox.checked : false;
             map.addSource('src-trails', {
               type: 'vector',
               url: 'pmtiles://' + TRAILS_PMTILES,
