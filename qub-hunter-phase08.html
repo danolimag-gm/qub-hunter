@@ -96,6 +96,108 @@
       }
     }
 
+    .version-badge {
+      position: absolute;
+      top: 168px;
+      left: 12px;
+      font-size: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      color: rgba(42, 56, 38, 0.7);
+      background: rgba(240, 232, 214, 0.75);
+      padding: 1px 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 5;
+      letter-spacing: 0.5px;
+    }
+    .version-badge:hover { background: rgba(240, 232, 214, 0.95); }
+
+    /* ── CHANGELOG MODAL ── */
+    .changelog-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .changelog-overlay.open { display: flex; }
+    .changelog-modal {
+      background: #f0e8d0;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 92%;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 24px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #2a3826;
+    }
+    .changelog-modal h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .changelog-version {
+      border-bottom: 1px solid rgba(42,56,38,0.15);
+      padding: 10px 0;
+    }
+    .changelog-version:last-child { border-bottom: none; }
+    .changelog-version-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .changelog-version-header h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #2d5016;
+    }
+    .changelog-version-header .cl-date {
+      font-size: 11px;
+      color: rgba(42,56,38,0.5);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .changelog-version-header .cl-chevron {
+      font-size: 12px;
+      transition: transform 0.2s;
+      color: rgba(42,56,38,0.4);
+    }
+    .changelog-version.open .cl-chevron { transform: rotate(180deg); }
+    .changelog-body {
+      display: none;
+      padding: 8px 0 4px 4px;
+    }
+    .changelog-version.open .changelog-body { display: block; }
+    .changelog-body ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #3a3a2e;
+    }
+    .changelog-body ul li { margin-bottom: 2px; }
+    .changelog-close {
+      display: block;
+      margin: 16px auto 0;
+      background: #2d5016;
+      color: #f0e8d0;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .changelog-close:hover { background: #3a6a1e; }
+
     /* ── LANDSCAPE WARNING ── */
     @media screen and (orientation: landscape) and (max-width: 900px) {
       .landscape-warning {
@@ -1788,6 +1890,7 @@
   <a href="." class="logo-link" id="logoLink">
     <img class="logo-img" src="qub-hunter-traced.svg" alt="Qub Hunter Logo" />
   </a>
+  <div id="versionBadge" class="version-badge" title="Notes de version">v0.8</div>
 
   <!-- LANDSCAPE WARNING -->
   <div class="landscape-warning">
@@ -5286,6 +5389,169 @@
       searchInput.addEventListener('input', function () { clearTimeout(searchDebounce); searchDebounce = setTimeout(function () { doSearch(searchInput.value); }, 400); });
       searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(searchDebounce); doSearch(searchInput.value); } if (e.key === 'Escape') { $('searchClose').click(); } });
 
+    })();
+  </script>
+
+  <!-- CHANGELOG MODAL -->
+  <div class="changelog-overlay" id="changelogOverlay">
+    <div class="changelog-modal">
+      <h2>Notes de version</h2>
+
+      <div class="changelog-version open">
+        <div class="changelog-version-header">
+          <h3>v0.8 — Habitats &amp; Sentiers</h3>
+          <span class="cl-date">mai 2025</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>5 couches d'habitat potentiel (orignal, cerf, ours, caribou, dindon)</li>
+            <li>Popups habitat avec note biologique</li>
+            <li>Couche sentiers OSM (pédestre, motoneige, VTT) via PMTiles</li>
+            <li>Import KML / GPX / JSON dans le restaurer</li>
+            <li>Numéros de lot au centre des parcelles cadastrales</li>
+            <li>Fix popup écoforestier (un seul à la fois)</li>
+            <li>Fix CORS R2 pour les tuiles PMTiles</li>
+            <li>Manifest inline (fix Cloudflare Access)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.7 — Écoforestier &amp; Cadastre</h3>
+          <span class="cl-date">avr 2025</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>Types forestiers (résineux, feuillu, mélangé) via PMTiles R2</li>
+            <li>Popup écoforestier avec essences, âge, hauteur</li>
+            <li>Lots cadastraux avec popup (numéro, superficie)</li>
+            <li>Sélecteur de région cadastrale</li>
+            <li>Recherche par numéro de lot</li>
+            <li>Surbrillance du lot sélectionné</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.6 — Sauvegarde &amp; UX mobile</h3>
+          <span class="cl-date">mars 2025</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>Backup / restauration JSON (repères + carnet)</li>
+            <li>Panel bottom-sheet tactile (glisser pour ouvrir)</li>
+            <li>Header complet cliquable pour fermer le panel</li>
+            <li>Fix carte figée (updateCompass null reference)</li>
+            <li>Fix repères non persistés après refresh</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.5 — Carnet de chasse</h3>
+          <span class="cl-date">fév 2025</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>Carnet de chasse (espèce, date, position, notes)</li>
+            <li>Export GPX et KML des repères + zones</li>
+            <li>16 catégories de repères (affût, passage, cache, etc.)</li>
+            <li>Zone 300 m autour des repères de type cercle</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.4 — Repères &amp; Waypoints</h3>
+          <span class="cl-date">jan 2025</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>Repères personnalisés (appui long ou bouton +)</li>
+            <li>Persistance localStorage</li>
+            <li>Popup éditable (nom, note, catégorie)</li>
+            <li>Liste des repères dans le panel</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.3 — Mode hors-ligne</h3>
+          <span class="cl-date">déc 2024</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>Service Worker avec cache stratégique</li>
+            <li>Cache tuiles (FIFO, max 500)</li>
+            <li>Gestion taille du cache dans les paramètres</li>
+            <li>Fonctionnement hors-ligne partiel</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.2 — Territoires fauniques</h3>
+          <span class="cl-date">nov 2024</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>ZEC, pourvoiries, réserves fauniques, parcs nationaux</li>
+            <li>Zones de chasse MRNF</li>
+            <li>Territoires autochtones</li>
+            <li>Légende interactive avec toggles</li>
+            <li>Popups informatifs par couche</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-version">
+        <div class="changelog-version-header">
+          <h3>v0.1 — Carte de base</h3>
+          <span class="cl-date">oct 2024</span>
+          <span class="cl-chevron">▼</span>
+        </div>
+        <div class="changelog-body">
+          <ul>
+            <li>Carte MapLibre GL avec fond topographique</li>
+            <li>4 sources de tuiles (CARTO, OSM, Stadia, Satellite)</li>
+            <li>Géolocalisation GPS</li>
+            <li>Boussole et coordonnées en temps réel</li>
+            <li>Barre de recherche iCherche</li>
+          </ul>
+        </div>
+      </div>
+
+      <button class="changelog-close" id="changelogClose">Fermer</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var overlay = document.getElementById('changelogOverlay');
+      var badge = document.getElementById('versionBadge');
+      var closeBtn = document.getElementById('changelogClose');
+      badge.addEventListener('click', function () { overlay.classList.add('open'); });
+      closeBtn.addEventListener('click', function () { overlay.classList.remove('open'); });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.classList.remove('open'); });
+      var headers = overlay.querySelectorAll('.changelog-version-header');
+      for (var i = 0; i < headers.length; i++) {
+        headers[i].addEventListener('click', function () {
+          this.parentElement.classList.toggle('open');
+        });
+      }
     })();
   </script>
 
