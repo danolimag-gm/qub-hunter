@@ -1831,8 +1831,6 @@
     <span id="loadingMsg">Chargement…</span>
   </div>
 
-  <div class="compass-readout" id="compass" style="display:none"></div>
-
   <div class="legend" id="legend">
     <div class="legend-row">
       <div class="legend-swatch" style="background:#7a8a3e;opacity:.6"></div>ZEC
@@ -4487,11 +4485,6 @@
         panel.classList.toggle('open', open);
         panelMeta.textContent = open ? 'Touchez pour réduire' : 'Glissez pour ouvrir';
         panelToggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
-        var isDesktop = window.innerWidth >= 900;
-        var compassReadout = $('compass');
-        if (compassReadout) {
-          compassReadout.style.display = open && !isDesktop ? 'none' : '';
-        }
         if (open) updateOfflinePanel();
       }
 
