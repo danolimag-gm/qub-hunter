@@ -2158,15 +2158,60 @@
               class="toggle-slider"></span></label>
         </div>
 
-        <!-- Habitat orignal -->
-        <div class="layer-row" style="opacity:0.5">
-          <div class="layer-swatch" style="background:var(--rust);border:1px solid var(--forest-dark)"></div>
+      </div>
+
+      <!-- HABITATS POTENTIELS -->
+      <div class="layer-section">
+        <div class="section-label">Habitats potentiels</div>
+
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(160,74,40,0.55);border:1px solid #a04a28"></div>
           <div class="layer-info">
-            <div class="layer-name">Habitat orignal</div>
-            <div class="layer-desc" id="desc-moose-habitat">indisponible (WMS)</div>
+            <div class="layer-name">Orignal 🫎</div>
+            <div class="layer-desc">mélangé/résineux mature, hauteur 12 m+</div>
           </div>
-          <label class="toggle"><input type="checkbox" data-layer="moose-habit" disabled><span
-              class="toggle-slider"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="habitat-orignal"><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(184,138,62,0.55);border:1px solid #b88a3e"></div>
+          <div class="layer-info">
+            <div class="layer-name">Cerf de Virginie 🦌</div>
+            <div class="layer-desc">résineux mature (ravage hivernal)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="habitat-cerf"><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(74,56,41,0.55);border:1px solid #4a3829"></div>
+          <div class="layer-info">
+            <div class="layer-name">Ours noir 🐻</div>
+            <div class="layer-desc">feuillu/mélangé mature (mast, petits fruits)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="habitat-ours"><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(212,197,160,0.55);border:1px solid #8a7a5a"></div>
+          <div class="layer-info">
+            <div class="layer-name">Caribou 🦌</div>
+            <div class="layer-desc">résineux 90 ans+ (lichens, non brûlé)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="habitat-caribou"><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="layer-row">
+          <div class="layer-swatch" style="background:rgba(107,26,20,0.55);border:1px solid #6b1a14"></div>
+          <div class="layer-info">
+            <div class="layer-name">Dindon sauvage 🦃</div>
+            <div class="layer-desc">feuillu/mélangé mature (Sud du Québec)</div>
+          </div>
+          <label class="toggle"><input type="checkbox" data-layer="habitat-dindon"><span class="toggle-slider"></span></label>
+        </div>
+
+        <div
+          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
+          ⚠ Habitats <i>potentiels</i> dérivés de la carte écoforestière MRNF — pas une garantie de présence. Disponible zoom ≥ 8.
         </div>
       </div>
 
@@ -3979,6 +4024,65 @@
               layout: { 'visibility': isVisible ? 'visible' : 'none' }
             });
 
+            // ── HABITATS POTENTIELS (filtres sur le même source) ───────────────
+            var HABITATS = [
+              {
+                key: 'orignal', color: '#a04a28',
+                filter: ['all',
+                  ['in', ['get', 'type_couv'], ['literal', ['M', 'R']]],
+                  ['in', ['get', 'cl_haut'], ['literal', ['1', '2', '3']]]
+                ]
+              },
+              {
+                key: 'cerf', color: '#b88a3e',
+                filter: ['all',
+                  ['==', ['get', 'type_couv'], 'R'],
+                  ['in', ['get', 'cl_haut'], ['literal', ['1', '2']]],
+                  ['in', ['get', 'cl_age'], ['literal', ['70', '90', '110', '120', 'VIN']]]
+                ]
+              },
+              {
+                key: 'ours', color: '#4a3829',
+                filter: ['all',
+                  ['in', ['get', 'type_couv'], ['literal', ['F', 'M']]],
+                  ['in', ['get', 'cl_age'], ['literal', ['50', '70', '90', '110', '120', 'VIN']]]
+                ]
+              },
+              {
+                key: 'caribou', color: '#d4c5a0',
+                filter: ['all',
+                  ['==', ['get', 'type_couv'], 'R'],
+                  ['in', ['get', 'cl_age'], ['literal', ['90', '110', '120', 'VIN']]],
+                  ['!=', ['get', 'origine'], 'BR']
+                ]
+              },
+              {
+                key: 'dindon', color: '#6b1a14',
+                filter: ['all',
+                  ['in', ['get', 'type_couv'], ['literal', ['F', 'M']]],
+                  ['in', ['get', 'cl_age'], ['literal', ['70', '90', '110', '120', 'VIN']]]
+                ]
+              }
+            ];
+            HABITATS.forEach(function (h) {
+              var cb = document.querySelector('input[data-layer="habitat-' + h.key + '"]');
+              var hVis = cb && cb.checked;
+              map.addLayer({
+                id: 'fill-habitat-' + h.key,
+                type: 'fill',
+                source: 'src-forest-types',
+                'source-layer': 'types_forestiers',
+                minzoom: 8,
+                filter: h.filter,
+                paint: {
+                  'fill-color': h.color,
+                  'fill-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.35, 13, 0.55],
+                  'fill-outline-color': 'rgba(0,0,0,0.25)'
+                },
+                layout: { 'visibility': hVis ? 'visible' : 'none' }
+              });
+            });
+
             map.on('click', 'fill-forest-types', function (e) {
               var f = e.features && e.features[0]; if (!f) return;
               var p = f.properties || {};
@@ -4323,6 +4427,8 @@
               ids = ['line-trails'];
             } else if (key === 'land-use' || key === 'moose-habitat') {
               ids = ['fill-' + key];
+            } else if (key.indexOf('habitat-') === 0) {
+              ids = ['fill-' + key];
             } else {
               ids = ['fill-' + key, 'line-' + key];
             }
@@ -4546,6 +4652,8 @@
             } else if (key === 'trails') {
               ids = ['line-trails'];
             } else if (key === 'land-use' || key === 'moose-habitat') {
+              ids = ['fill-' + key];
+            } else if (key.indexOf('habitat-') === 0) {
               ids = ['fill-' + key];
             } else {
               ids = ['fill-' + key, 'line-' + key];
