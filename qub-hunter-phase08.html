@@ -2214,17 +2214,33 @@
 
         <div class="layer-row">
           <div class="layer-swatch"
-            style="background:linear-gradient(90deg, #2d5016 0%, #2a5c8a 33%, #a04a28 66%, #b88a3e 100%);border:1px solid var(--forest-dark)">
+            style="background:linear-gradient(90deg, #2d5016 0%, #2d5016 33%, #2a5c8a 33%, #2a5c8a 66%, #a04a28 66%, #a04a28 100%);border:1px solid var(--forest-dark)">
           </div>
           <div class="layer-info">
             <div class="layer-name">Tous les sentiers</div>
-            <div class="layer-desc" id="desc-trails">randonnée, motoneige, VTT, vélo</div>
+            <div class="layer-desc" id="desc-trails">pédestre, motoneige, VTT</div>
           </div>
           <label class="toggle"><input type="checkbox" data-layer="trails"><span class="toggle-slider"></span></label>
         </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;padding:8px 0 4px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;width:18px;height:3px;background:#2d5016;border-radius:2px"></span>
+            <span>Pédestre / randonnée</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;width:18px;height:3px;background:#2a5c8a;border-radius:2px"></span>
+            <span>Motoneige</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;width:18px;height:3px;background:#a04a28;border-radius:2px"></span>
+            <span>VTT</span>
+          </div>
+        </div>
+
         <div
-          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:6px 0 0">
-          Données OpenStreetMap (OSM) • Couleurs par type de sentier
+          style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bark-light);line-height:1.6;padding:4px 0 0">
+          Données OpenStreetMap (OSM)
         </div>
       </div>
 
