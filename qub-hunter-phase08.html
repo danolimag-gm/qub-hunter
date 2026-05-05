@@ -2453,7 +2453,7 @@
           <button class="wp-footer-btn export" id="backupDownloadBtn">↓ Télécharger</button>
           <button class="wp-footer-btn export" id="backupRestoreBtn">↑ Restaurer</button>
         </div>
-        <input type="file" id="backupRestoreInput" accept="application/json,.json" style="display:none">
+        <input type="file" id="backupRestoreInput" accept=".json,.kml,.gpx,application/json,application/vnd.google-earth.kml+xml,application/gpx+xml" style="display:none">
       </div>
 
       <!-- SOURCE DES DONNÉES -->
@@ -3297,6 +3297,72 @@
 
       $('exportGpxBtn').addEventListener('click', exportGPX);
       $('exportKmlBtn').addEventListener('click', exportKML);
+
+      function parseJsonImport(text) {
+        var data = JSON.parse(text);
+        if (Array.isArray(data.waypoints)) return data.waypoints;
+        if (Array.isArray(data)) return data;
+        return [];
+      }
+
+      function parseKmlImport(text) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(text, 'text/xml');
+        var placemarks = doc.querySelectorAll('Placemark');
+        var results = [];
+        for (var i = 0; i < placemarks.length; i++) {
+          var pm = placemarks[i];
+          var coordEl = pm.querySelector('Point coordinates');
+          if (!coordEl) continue;
+          var parts = coordEl.textContent.trim().split(',');
+          if (parts.length < 2) continue;
+          var lng = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+          if (isNaN(lat) || isNaN(lng)) continue;
+          var nameEl = pm.querySelector('name');
+          var descEl = pm.querySelector('description');
+          var name = nameEl ? nameEl.textContent.trim() : '';
+          var desc = descEl ? descEl.textContent.trim() : '';
+          var cat = guessCategory(name, desc);
+          results.push({ lat: lat, lng: lng, name: name, note: desc, cat: cat, ts: Date.now() });
+        }
+        return results;
+      }
+
+      function parseGpxImport(text) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(text, 'text/xml');
+        var wpts = doc.querySelectorAll('wpt');
+        var results = [];
+        for (var i = 0; i < wpts.length; i++) {
+          var wpt = wpts[i];
+          var lat = parseFloat(wpt.getAttribute('lat'));
+          var lng = parseFloat(wpt.getAttribute('lon'));
+          if (isNaN(lat) || isNaN(lng)) continue;
+          var nameEl = wpt.querySelector('name');
+          var descEl = wpt.querySelector('desc');
+          var typeEl = wpt.querySelector('type');
+          var timeEl = wpt.querySelector('time');
+          var name = nameEl ? nameEl.textContent.trim() : '';
+          var desc = descEl ? descEl.textContent.trim() : '';
+          var typeName = typeEl ? typeEl.textContent.trim() : '';
+          var ts = timeEl ? new Date(timeEl.textContent.trim()).getTime() : Date.now();
+          var cat = guessCategory(name, desc + ' ' + typeName);
+          results.push({ lat: lat, lng: lng, name: name, note: desc, cat: cat, ts: ts });
+        }
+        return results;
+      }
+
+      function guessCategory(name, desc) {
+        var text = (name + ' ' + desc).toLowerCase();
+        var CATEGORY_KEYS = Object.keys(CATEGORIES);
+        for (var i = 0; i < CATEGORY_KEYS.length; i++) {
+          var key = CATEGORY_KEYS[i];
+          var cat = CATEGORIES[key];
+          if (text.indexOf(key) !== -1 || text.indexOf(cat.nom.toLowerCase()) !== -1) return key;
+        }
+        return 'affut';
+      }
+
       $('clearWaypointsBtn').addEventListener('click', function () {
         if (!waypoints.length) { showToast('Aucun repère'); return; }
         if (!confirm('Supprimer tous les repères ?')) return;
@@ -3347,10 +3413,45 @@
       $('backupRestoreInput').addEventListener('change', function (e) {
         var file = e.target.files && e.target.files[0];
         if (!file) return;
+        var ext = file.name.split('.').pop().toLowerCase();
         var reader = new FileReader();
         reader.onload = function (ev) {
+          var text = ev.target.result;
+
+          // ── KML / GPX : import repères seulement ──
+          if (ext === 'kml' || ext === 'gpx') {
+            var imported = ext === 'kml' ? parseKmlImport(text) : parseGpxImport(text);
+            if (!imported.length) { showToast('Aucun repère trouvé dans le fichier'); $('backupRestoreInput').value = ''; return; }
+            if (!confirm('Fusionner ' + imported.length + ' repère(s) avec vos données ?\n(Les doublons seront ignorés.)')) {
+              $('backupRestoreInput').value = ''; return;
+            }
+            var existingIds = {};
+            waypoints.forEach(function (w) { existingIds[w.id] = true; });
+            var existingSigs = {};
+            waypoints.forEach(function (w) { existingSigs[w.lat.toFixed(5) + '|' + w.lng.toFixed(5) + '|' + w.cat] = true; });
+            var added = 0;
+            imported.forEach(function (w) {
+              if (w.id && existingIds[w.id]) return;
+              var sig = w.lat.toFixed(5) + '|' + w.lng.toFixed(5) + '|' + w.cat;
+              if (existingSigs[sig]) return;
+              if (!w.id) w.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+              waypoints.push(w);
+              existingIds[w.id] = true;
+              existingSigs[sig] = true;
+              if (w.cat !== 'cercle300m') addWaypointToMap(w);
+              added++;
+            });
+            saveWaypoints();
+            renderCustom300mCircles();
+            renderWaypointList();
+            $('backupRestoreInput').value = '';
+            showToast('Importé : +' + added + ' repère(s) (' + (imported.length - added) + ' doublon(s) ignoré(s))');
+            return;
+          }
+
+          // ── JSON : import repères + carnet ──
           var data;
-          try { data = JSON.parse(ev.target.result); }
+          try { data = JSON.parse(text); }
           catch (err) { alert('Fichier invalide : JSON illisible'); return; }
           if (!data || (!Array.isArray(data.waypoints) && !Array.isArray(data.huntLog))) {
             alert('Fichier invalide : ne contient ni repères ni carnet'); return;
@@ -3493,7 +3594,7 @@
         var rasterPaint = src.satellite
           ? { 'raster-opacity': 1 }
           : { 'raster-opacity': 0.85, 'raster-saturation': -0.3, 'raster-contrast': 0.05, 'raster-hue-rotate': 15 };
-        return { version: 8, sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: maxzoom } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: rasterPaint }] };
+        return { version: 8, glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf', sources: { base: { type: 'raster', tiles: src.tiles, tileSize: tileSize, attribution: src.attrib, maxzoom: maxzoom } }, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#e8dcc0' } }, { id: 'base', type: 'raster', source: 'base', paint: rasterPaint }] };
       }
       function setSourceLabel(name) { var el = $('curSource'); if (el) el.textContent = name; }
       setSourceLabel(TILE_SOURCES[currentSourceIdx].name);
@@ -3703,7 +3804,7 @@
             if (!r.ok) throw new Error('absent');
             map.addSource('src-cadastre', { type: 'vector', url: 'pmtiles://' + CADASTRE_PMTILES, attribution: ' MRNF — Cadastre rénové du Québec' });
             map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6, 'symbol-placement': 'point', 'text-anchor': 'center' }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            addLabelCadastreLayer('src-cadastre', 'cadastre');
             map.on('click', 'line-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
@@ -3743,20 +3844,7 @@
           paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 },
           layout: { 'visibility': isVisible ? 'visible' : 'none' }
         });
-        map.addLayer({
-          id: 'label-cadastre', type: 'symbol', source: sourceId,
-          minzoom: 14,
-          layout: {
-            'text-field': ['get', 'NO_LOT'],
-            'text-font': ['literal', ['Open Sans Regular']],
-            'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11],
-            'text-max-width': 6,
-            'symbol-placement': 'point',
-            'text-anchor': 'center',
-            'visibility': isVisible ? 'visible' : 'none'
-          },
-          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }
-        });
+        addLabelCadastreLayer(sourceId, undefined, isVisible ? 'visible' : 'none');
 
         // ── SURBRILLANCE POLYGONE LOT ───────────────────────────────────────────
         function highlightLot(feature) {
@@ -3898,7 +3986,7 @@
 
             map.addLayer({ id: 'fill-cadastre', type: 'fill', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'fill-color': '#8a7a5a', 'fill-opacity': 0 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
             map.addLayer({ id: 'line-cadastre', type: 'line', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 12, paint: { 'line-color': '#8a7a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 1.2], 'line-opacity': 0.7 }, layout: { 'visibility': isVisible ? 'visible' : 'none' } });
-            map.addLayer({ id: 'label-cadastre', type: 'symbol', source: 'src-cadastre', 'source-layer': 'cadastre', minzoom: 14, layout: { 'text-field': ['get', 'NO_LOT'], 'text-font': ['literal', ['Open Sans Regular']], 'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11], 'text-max-width': 6, 'symbol-placement': 'point', 'text-anchor': 'center', 'visibility': isVisible ? 'visible' : 'none' }, paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 } });
+            addLabelCadastreLayer('src-cadastre', 'cadastre', isVisible ? 'visible' : 'none');
             map.on('click', 'fill-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
               var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div>';
@@ -4425,6 +4513,31 @@
         } else {
           map.getCanvas().style.cursor = '';
           showToast('Mode cercle 300 m désactivé');
+        }
+      }
+
+      function addLabelCadastreLayer(sourceId, sourceLayer, visibility) {
+        if (map.getLayer('label-cadastre')) return;
+        var layerDef = {
+          id: 'label-cadastre', type: 'symbol', source: sourceId, minzoom: 14,
+          layout: {
+            'text-field': ['get', 'NO_LOT'],
+            'text-font': ['literal', ['Open Sans Regular']],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 16, 11],
+            'text-max-width': 6, 'symbol-placement': 'point', 'text-anchor': 'center',
+            'visibility': visibility || 'none'
+          },
+          paint: { 'text-color': '#4a3829', 'text-halo-color': 'rgba(240,232,214,0.85)', 'text-halo-width': 1 }
+        };
+        if (sourceLayer) layerDef['source-layer'] = sourceLayer;
+        try {
+          map.addLayer(layerDef);
+        } catch (e) {
+          // Glyphs not yet ready — retry after style settles
+          setTimeout(function () {
+            if (map.getLayer('label-cadastre')) return;
+            try { map.addLayer(layerDef); } catch (e2) { /* give up */ }
+          }, 1000);
         }
       }
 
