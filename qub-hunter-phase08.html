@@ -3980,6 +3980,7 @@
 
       function loadForestTypesLayer() {
         if (!pmtilesAvailable) return;
+        if (map.getSource('src-forest-types')) return;
         var checkbox = document.querySelector('input[data-layer="forest-types"]');
         var isVisible = checkbox ? checkbox.checked : false;
         var descEl = $('desc-forest-types');
