@@ -3708,7 +3708,7 @@
       var R2_BASE = 'https://pub-58d03817f7d946a1a57bd4fe9c9c25af.r2.dev';
       var currentRegion = localStorage.getItem('cadastre-region') || '04';
       var CADASTRE_PMTILES = R2_BASE + '/cadastre/cadastre_' + currentRegion + '.pmtiles';
-      var FOREST_TYPES_PMTILES = R2_BASE + '/types/types_forestiers.pmtiles';
+      var FOREST_TYPES_PMTILES = R2_BASE + '/types/types_forestiers_' + currentRegion + '.pmtiles';
       var pmtilesAvailable = false;
       if (typeof pmtiles !== 'undefined') {
         var protocol = new pmtiles.Protocol();
@@ -4067,6 +4067,7 @@
       function reloadCadastre(regionCode) {
         currentRegion = regionCode;
         CADASTRE_PMTILES = R2_BASE + '/cadastre/cadastre_' + regionCode + '.pmtiles';
+        FOREST_TYPES_PMTILES = R2_BASE + '/types/types_forestiers_' + regionCode + '.pmtiles';
         localStorage.setItem('cadastre-region', regionCode);
         ['label-cadastre', 'line-cadastre', 'fill-cadastre'].forEach(function(id) {
           if (map.getLayer(id)) map.removeLayer(id);
@@ -4075,6 +4076,23 @@
         var descEl = $('desc-cadastre');
         if (descEl) descEl.textContent = 'chargement…';
         loadCadastrePMTiles(descEl);
+        reloadForestTypes();
+      }
+
+      function reloadForestTypes() {
+        // Remove habitat layers first (they depend on src-forest-types)
+        var HABITAT_KEYS = ['orignal', 'cerf', 'ours', 'caribou', 'dindon'];
+        HABITAT_KEYS.forEach(function(k) {
+          if (map.getLayer('fill-habitat-' + k)) map.removeLayer('fill-habitat-' + k);
+        });
+        // Remove forest type layers
+        ['line-forest-types', 'fill-forest-types'].forEach(function(id) {
+          if (map.getLayer(id)) map.removeLayer(id);
+        });
+        if (map.getSource('src-forest-types')) map.removeSource('src-forest-types');
+        var descEl = $('desc-forest-types');
+        if (descEl) descEl.textContent = 'chargement…';
+        loadForestTypesLayer();
       }
 
       function loadCadastrePMTiles(descEl) {
@@ -4285,6 +4303,9 @@
               });
             });
 
+            if (!window._ecoHandlersBound) {
+            window._ecoHandlersBound = true;
+
             var _ecoPopup = null;
             function showEcoPopup(lngLat, html) {
               if (_ecoPopup) _ecoPopup.remove();
@@ -4337,6 +4358,7 @@
             });
             map.on('mouseenter', 'fill-forest-types', function () { map.getCanvas().style.cursor = 'pointer'; });
             map.on('mouseleave', 'fill-forest-types', function () { map.getCanvas().style.cursor = ''; });
+            } // end _ecoHandlersBound
 
             if (descEl) descEl.textContent = 'PMTiles chargé (zoom ≥ 8)';
           })
