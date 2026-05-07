@@ -2929,7 +2929,7 @@
       }
 
       function buildPopupHTML(key, nom, isLive, props) {
-        var html = '<div class="popup-type">' + typeLabel(key) + '</div><div class="popup-title">' + nom + '</div>';
+        var html = '<div class="popup-type">' + typeLabel(key) + '</div><div class="popup-title">' + escXml(nom) + '</div>';
         if (key === 'zones') {
           var num = zoneNumero(props || {}); var especes = num ? ESPECES_PAR_ZONE[num] : null;
           html += '<div class="popup-reglements">';
@@ -2989,10 +2989,44 @@
         try { localStorage.setItem(HUNT_LOG_KEY, JSON.stringify(huntLog)); } catch (e) { }
       }
 
+      // Sanitise untrusted data loaded from localStorage or imported files
+      function sanitiseString(v) { return (typeof v === 'string') ? v.replace(/<[^>]*>/g, '') : ''; }
+      function sanitiseEntry(e) {
+        if (!e || typeof e !== 'object') return null;
+        return {
+          id: sanitiseString(e.id) || makeId(),
+          species: sanitiseString(e.species),
+          sex: sanitiseString(e.sex),
+          weight: typeof e.weight === 'number' ? e.weight : parseFloat(e.weight) || 0,
+          calibre: sanitiseString(e.calibre),
+          zone: sanitiseString(e.zone),
+          date: sanitiseString(e.date),
+          note: sanitiseString(e.note),
+          icon: sanitiseString(e.icon).slice(0, 4) || '🦌',
+          lat: typeof e.lat === 'number' ? e.lat : null,
+          lng: typeof e.lng === 'number' ? e.lng : null
+        };
+      }
+      function sanitiseWaypoint(wp) {
+        if (!wp || typeof wp !== 'object') return null;
+        return {
+          id: sanitiseString(wp.id) || makeId(),
+          name: sanitiseString(wp.name),
+          note: sanitiseString(wp.note),
+          cat: sanitiseString(wp.cat),
+          lat: typeof wp.lat === 'number' ? wp.lat : null,
+          lng: typeof wp.lng === 'number' ? wp.lng : null,
+          icon: sanitiseString(wp.icon).slice(0, 4) || '📍'
+        };
+      }
+
       function loadHuntLogFromStorage() {
         try {
           var raw = localStorage.getItem(HUNT_LOG_KEY);
-          if (raw) huntLog = JSON.parse(raw);
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            huntLog = Array.isArray(parsed) ? parsed.map(sanitiseEntry).filter(Boolean) : [];
+          }
         } catch (e) { huntLog = []; }
       }
 
@@ -3016,7 +3050,7 @@
           if (entry.calibre) sub.push(entry.calibre);
           if (entry.zone) sub.push('Zone ' + entry.zone);
           div.innerHTML =
-            '<div class="hunt-log-icon">' + (entry.icon || '🦌') + '</div>' +
+            '<div class="hunt-log-icon">' + escXml(entry.icon || '🦌') + '</div>' +
             '<div class="hunt-log-info">' +
             '<div class="hunt-log-species">' + escXml(entry.species || 'Sans nom') + '</div>' +
             '<div class="hunt-log-details">' + escXml(sub.join(' · ')) + '</div>' +
@@ -3053,7 +3087,10 @@
       function loadWaypointsFromStorage() {
         try {
           var raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) waypoints = JSON.parse(raw);
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            waypoints = Array.isArray(parsed) ? parsed.map(sanitiseWaypoint).filter(Boolean) : [];
+          }
         } catch (e) { waypoints = []; }
       }
       function makeId() { return 'wp-' + Date.now() + '-' + Math.floor(Math.random() * 9999); }
@@ -3076,7 +3113,7 @@
           '<div class="popup-row"><span class="label">lat</span><span>' + wp.lat.toFixed(5) + '</span></div>' +
           '<div class="popup-row"><span class="label">lon</span><span>' + wp.lng.toFixed(5) + '</span></div>' +
           (wp.note ? '<div class="popup-row" style="flex-direction:column;gap:3px;margin-top:6px"><span class="label">Note</span><span>' + escXml(wp.note) + '</span></div>' : '') +
-          '<button onclick="window.__qhDelWp(\'' + wp.id + '\')" style="margin-top:10px;width:100%;padding:7px;background:var(--blood);color:var(--paper);border:none;border-radius:3px;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;">✕ Supprimer</button>';
+          '<button data-del-wp="' + escXml(wp.id) + '" style="margin-top:10px;width:100%;padding:7px;background:var(--blood);color:var(--paper);border:none;border-radius:3px;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;">✕ Supprimer</button>';
 
         var popup = new maplibregl.Popup({ offset: 18, closeButton: true, maxWidth: '250px' }).setHTML(popupHtml);
         var marker = new maplibregl.Marker({ element: el, anchor: 'bottom-left' })
@@ -3088,8 +3125,11 @@
         waypointMarkers[wp.id] = marker;
       }
 
-      // Global pour le bouton supprimer dans popup
-      window.__qhDelWp = function (id) { deleteWaypoint(id); };
+      // Délégué pour le bouton supprimer dans popup (évite onclick inline / XSS)
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-del-wp]');
+        if (btn) deleteWaypoint(btn.getAttribute('data-del-wp'));
+      });
 
       function deleteWaypoint(id) {
         var wp = findWp(id);
@@ -3540,6 +3580,8 @@
               var sig = w.lat.toFixed(5) + '|' + w.lng.toFixed(5) + '|' + w.cat;
               if (existingSigs[sig]) return;
               if (!w.id) w.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+              w = sanitiseWaypoint(w);
+              if (!w) return;
               waypoints.push(w);
               existingIds[w.id] = true;
               existingSigs[sig] = true;
@@ -3571,19 +3613,22 @@
           waypoints.forEach(function (w) { existingWpIds[w.id] = true; });
           var addedWp = 0;
           newWp.forEach(function (w) {
-            if (!w.id || existingWpIds[w.id]) return;
-            waypoints.push(w);
-            existingWpIds[w.id] = true;
-            if (w.cat !== 'cercle300m') addWaypointToMap(w);
+            var safe = sanitiseWaypoint(w);
+            if (!safe || !safe.id || existingWpIds[safe.id]) return;
+            waypoints.push(safe);
+            existingWpIds[safe.id] = true;
+            if (safe.cat !== 'cercle300m') addWaypointToMap(safe);
             addedWp++;
           });
           var existingHlSig = {};
           huntLog.forEach(function (h) { existingHlSig[(h.species || '') + '|' + (h.date || '') + '|' + (h.lat || '') + '|' + (h.lon || '')] = true; });
           var addedHl = 0;
           newHl.forEach(function (h) {
-            var sig = (h.species || '') + '|' + (h.date || '') + '|' + (h.lat || '') + '|' + (h.lon || '');
+            var safe = sanitiseEntry(h);
+            if (!safe) return;
+            var sig = (safe.species || '') + '|' + (safe.date || '') + '|' + (safe.lat || '') + '|' + (safe.lon || '');
             if (existingHlSig[sig]) return;
-            huntLog.push(h);
+            huntLog.push(safe);
             existingHlSig[sig] = true;
             addedHl++;
           });
@@ -3913,7 +3958,7 @@
             addLabelCadastreLayer('src-cadastre', 'cadastre');
             map.on('click', 'line-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
-              var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + (p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
+              var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + escXml(p.NO_LOT || '—') + '</div><div class="popup-row"><span class="label">N° cadastre</span><span>' + escXml(p.NO_CADASTRE || '—') + '</span></div><div class="popup-row"><span class="label">Superficie</span><span>' + (p.SUPERFICIE ? Math.round(p.SUPERFICIE) + ' m²' : '—') + '</span></div>';
               new maplibregl.Popup({ offset: 10, closeButton: true }).setLngLat(e.lngLat).setHTML(html).addTo(map);
             });
             map.on('mouseenter', 'line-cadastre', function () { map.getCanvas().style.cursor = 'pointer'; });
@@ -4114,7 +4159,7 @@
             addLabelCadastreLayer('src-cadastre', 'cadastre', isVisible ? 'visible' : 'none');
             map.on('click', 'fill-cadastre', function (e) {
               var f = e.features[0]; if (!f) return; var p = f.properties || {};
-              var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + (p.NO_LOT || '—') + '</div>';
+              var html = '<div class="popup-type">Cadastre rénové</div><div class="popup-title">Lot ' + escXml(p.NO_LOT || '—') + '</div>';
               new maplibregl.Popup({ offset: 10, closeButton: true }).setLngLat(e.lngLat).setHTML(html).addTo(map);
             });
             map.on('mouseenter', 'fill-cadastre', function () { map.getCanvas().style.cursor = 'pointer'; });
@@ -4330,11 +4375,11 @@
                 var html = '<div class="popup-type">Habitat potentiel ' + info.emoji + '</div>' +
                   '<div class="popup-title">' + info.name + '</div>' +
                   '<div class="popup-body" style="font-size:11px;line-height:1.7">' +
-                  (p.gr_ess ? '<b>Essences&nbsp;:</b> ' + p.gr_ess + '<br>' : '') +
-                  (p.cl_age ? '<b>Âge&nbsp;:</b> ' + p.cl_age + '<br>' : '') +
-                  (p.cl_haut ? '<b>Hauteur&nbsp;:</b> ' + p.cl_haut + '<br>' : '') +
-                  (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + p.type_eco + '<br>' : '') +
-                  (p.origine ? '<b>Origine&nbsp;:</b> ' + p.origine + '<br>' : '') +
+                  (p.gr_ess ? '<b>Essences&nbsp;:</b> ' + escXml(p.gr_ess) + '<br>' : '') +
+                  (p.cl_age ? '<b>Âge&nbsp;:</b> ' + escXml(p.cl_age) + '<br>' : '') +
+                  (p.cl_haut ? '<b>Hauteur&nbsp;:</b> ' + escXml(p.cl_haut) + '<br>' : '') +
+                  (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + escXml(p.type_eco) + '<br>' : '') +
+                  (p.origine ? '<b>Origine&nbsp;:</b> ' + escXml(p.origine) + '<br>' : '') +
                   '<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1);font-style:italic;color:#555">' +
                   info.note + '</div></div>';
                 showEcoPopup(e.lngLat, html);
@@ -4346,15 +4391,15 @@
             map.on('click', 'fill-forest-types', function (e) {
               var f = e.features && e.features[0]; if (!f) return;
               var p = f.properties || {};
-              var typLabel = TYPE_COUV_LABELS[p.type_couv] || p.type_couv || '—';
+              var typLabel = TYPE_COUV_LABELS[p.type_couv] || escXml(p.type_couv) || '—';
               var html = '<div class="popup-type">Écoforestier MRNF</div>' +
                 '<div class="popup-title">' + typLabel + '</div>' +
                 '<div class="popup-body" style="font-size:11px;line-height:1.7">' +
-                (p.gr_ess ? '<b>Essences&nbsp;:</b> ' + p.gr_ess + '<br>' : '') +
-                (p.cl_age ? '<b>Âge&nbsp;:</b> ' + p.cl_age + '<br>' : '') +
-                (p.cl_haut ? '<b>Hauteur&nbsp;:</b> ' + p.cl_haut + '<br>' : '') +
-                (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + p.type_eco + '<br>' : '') +
-                (p.origine ? '<b>Origine&nbsp;:</b> ' + p.origine : '') +
+                (p.gr_ess ? '<b>Essences&nbsp;:</b> ' + escXml(p.gr_ess) + '<br>' : '') +
+                (p.cl_age ? '<b>Âge&nbsp;:</b> ' + escXml(p.cl_age) + '<br>' : '') +
+                (p.cl_haut ? '<b>Hauteur&nbsp;:</b> ' + escXml(p.cl_haut) + '<br>' : '') +
+                (p.type_eco ? '<b>Type éco&nbsp;:</b> ' + escXml(p.type_eco) + '<br>' : '') +
+                (p.origine ? '<b>Origine&nbsp;:</b> ' + escXml(p.origine) : '') +
                 '</div>';
               showEcoPopup(e.lngLat, html);
             });
